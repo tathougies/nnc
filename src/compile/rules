@@ -1,0 +1,8 @@
+rule([](Rule &p) {
+  Var x, y;
+  p.insn("const").arg("const", wild, []() { }).arg("dest", y);
+
+  p.produce([&]() {
+    
+  });
+});

@@ -1,0 +1,195 @@
+/* Instruction selection rules for x86_64 */
+
+code "rules_preamble_namespaced" [[
+  template<typename X>
+  bool isZero(const X &z) {
+    return std::all_of(std::begin(z), std::end(z), [](auto x) { return x == 0; });
+  }
+
+  int log2(std::uint64_t u) {
+    if ( __builtin_popcount(u) == 1 ) {
+      return __builtin_ctz(u);
+    } else return -1;
+  }
+]];
+
+// insnrule load_zero {
+//   var $ty : regtype;
+//   var $x : constant;
+//   var $out : register;
+// 
+// //  regclass $out gp;
+//   if [[ isZero($x) ]];
+// 
+//   pattern {
+//     const(const=($ty) $x, dest->($ty) $out);
+//   }
+// 
+//   asm {
+//     xor($out, $out);
+//   }
+// }
+// 
+// insnrule load_const {
+//   var $x : constant;
+//   var $out : register;
+// 
+//   pattern {
+//     const(const=$x, dest->$out);
+//   }
+//   asm {
+//     mov($out, $x);
+//   }
+// }
+// 
+// insnrule mul_2 {
+//   var $ty : regtype;
+//   var $x : register;
+//   var $two : constant;
+//   var $out : register;
+// 
+//   extraPrivate = [[
+//     int shiftValue;
+//   ]];
+// 
+//   check [[
+//       if ( isIntType(*$ty) ) {
+//         shiftValue = log2(::nnc::compile::interpretAsInt($two));
+//         return ( shiftValue >= 0 );
+//       } else return false;
+//   ]];
+// 
+//   pattern {
+//     mul(left=$x, right=($ty) $two, dest->$out);
+//   }
+// 
+//   asm {
+// //    lea([[IntelAddress($x).scale(twoPow($two))]], $out);
+//   }
+// };
+// 
+// insnrule lt_zero {
+//   var $ty: regtype;
+//   var $a: register;
+//   var $c : register;
+//   var $x : constant;
+//   var $out : register;
+// 
+//   pattern {
+//     const(const=$x, dest->$c);
+//     lt(left=$a, right=$c, dest->$out);
+//   }
+// 
+//   if "isZero($x)";
+// 
+//   asm {
+//     test($a, $a, sign=$out);
+//   }
+// }
+// 
+// insnrule lt {
+//   var $a : register;
+//   var $b : register;
+//   var $out : register;
+// 
+//   pattern {
+//     lt(left=$a, right=$b, dest->$out);
+//   }
+// 
+//   asm {
+//     cmp($a, $b, sign=$out);
+//   }
+// }
+
+insnrule indexed_load {
+  var $a : register;
+  var $b : register;
+  var $c : register;
+  var $d : register;
+  var $x : register;
+  var $pow2 : constant;
+  var $pow2ty : regtype;
+
+  pattern {
+    { const(const=($pow2ty) $pow2, dest->$c);
+      { mul(left=$x, right=$c, dest->$a) |
+        mul(left=$c, right=$x, dest->$a) }
+    }?
+
+    { add(left=$a, right=$b, dest->$c) |
+      add(left=$b, right=$a, dest->$c) }
+
+    inttoptr(in=$c, out->$d);
+    load(addr=$d, dest->$x);
+  }
+
+  extraPrivate = [[
+    int shiftValue;
+  ]];
+
+  check [[
+      std::cerr << "In indexed load got pow2 " << $pow2ty << std::endl;
+      if ( $pow2ty && isIntType(*$pow2ty) ) {
+        shiftValue = log2(::nnc::compile::interpretAsInt($pow2));
+        std::cerr << "Got shift value " << shiftValue << std::endl;
+        return ( shiftValue >= 0 && shiftValue <= 3 );
+      } else return false;
+  ]];
+
+  asm {
+    mov($x, [[::nnc::arch::x86_64::types::modrm::memref($a, $b)]]);
+  }
+}
+
+//insnrule indexed_store {
+//  var $base : register;
+//  var $index : register;
+//  var $intptr : register;
+//  var $ptr : register;
+//  var $stored : register;
+//
+//  pattern {
+//    add(left=$base, right=$index, dest->$intptr);
+//    inttoptr(in=$intptr, out->$ptr);
+//    store(addr=$ptr, value=$stored);
+//  }
+//
+//  asm {
+//    mov([[::nnc::arch::x86_64::types::modrm::memref($base, $index)]], [[::nnc::arch::x86_64::types::modrmimm($stored)]]);
+//  }
+//}
+//
+//insnrule add_fp_16_to_32 {
+//  var $left : register;
+//  var $right : register;
+//  var $dest : register;
+//
+//  pattern {
+//    add(left=$left, right=$right, dest->$dest);
+//  }
+//
+//  check [[ ::nnc::compile::RtlTypeInfo lty(*$left->type()), rty(*$right->type());
+//           return (lty.isFloatType() && rty.isFloatType() && lty.width() == rty.width() && lty.width() == 32); ]];
+//
+//  asm {
+//    addps($dest, $left, $right);
+//  }
+//}
+
+//
+//insnrule zext_32_to_64 {
+//  var $in;
+//  var $out;
+//
+//  pattern {
+//    zext(in=$in, $out=$out);
+//  }
+//
+//  if [[intTypeWidth($in) == 32 && intTypeWidth($out) == 64]];
+//
+//  regclass $in : gp;
+//  regclass $out : gp;
+//
+//  // Add an alias instead of emitting anything
+//  alias $in $out;
+//}

@@ -1,0 +1,22 @@
+insn xor(<->$a, $b);
+insn test($a, $b, ->[$sign], ->[$zero], ->[$parity]) {
+  var $sign : register(u1);
+  var $zero : register(u1);
+  var $parity : register(u1);
+}
+insn cmp($a, $b, ->[$sign], ->[$carry]) {
+  var $sign : register(u1);
+  var $carry : register(u1);
+}
+
+insn mov(->$dst, $src) {
+  var $dst: modrm(u32);
+  var $src: modrmimm(u32);
+
+  constructor(modrm, register);
+  constructor(register, modrm);
+//  constructor(register, constant);
+//  constructor(modrm, constant);
+}
+
+insn addps(->$dst, $a, $b);

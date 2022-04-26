@@ -1,0 +1,15 @@
+architecture "x86_64";
+
+
+c_header [[
+#include <algorithm>
+#include <iostream>
+
+#include "compile/x86_64/types.hpp"
+]];
+
+
+include "ctypes.archdesc";
+include "registers.archdesc";
+include "rules.archdesc";
+include "insns.archdesc";

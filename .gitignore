@@ -1,0 +1,11 @@
+main
+archdescc
+Makefile
+Testing
+CTestTestfile.cmake
+*.so
+*.o
+CMakeCache.txt
+CMakeFiles
+*~
+vgcore*

@@ -1,0 +1,43 @@
+/* Register support for x86_64 */
+
+regclass gp {
+   doc = "General-purpose registers on X86-64, RAX, RBX, RCX, RDX, RSI, RDI, RBP, RSP, R8-R15";
+   count = 16;
+
+   register rax, rbx, rcx, rdx, rsi, rdi, rbp, rsp, r8, r9, r10, r11, r12, r13, r14, r15;
+   type i64;
+}
+
+regclass rax {
+   doc = "The RAX register";
+   register rax;
+   type i64;
+}
+
+regclass ad {
+   doc = "Some instructions return results in EAX/EDX";
+   count = 2;
+   register rax, rdx;
+   type i64;
+}
+
+//register al {
+//  clobbers rax;
+//}
+//
+//register ah {
+//  clobbers rax;
+//}
+
+// register gp 0 {
+//    name = "rax";
+//    alias rax 0;
+//    alias ad 0;
+// }
+//
+//register gp 3 {
+//   name = "rdx";
+//   alias ad 1;
+//}
+
+

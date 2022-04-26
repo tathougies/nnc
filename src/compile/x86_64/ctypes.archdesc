@@ -1,0 +1,31 @@
+ctype sib {
+  name = "::nnc::arch::x86_64::types::sib";
+  makeDefault = [[
+    if ( !$var.register() )
+      $member = $function.variable($name, $rtlType);
+  ]];
+  acceptsRtlType = true;
+}
+
+ctype modrm {
+  name = "::nnc::arch::x86_64::types::modrm";
+  makeDefault = [[
+    if ( !$var.register() ) {
+      $member = $function.variable($name, $rtlType);
+    }
+  ]];
+  visitOperands = "$member.visit(\"$name\", $visitor, $isInput, $isOutput);";
+  acceptsRtlType = true;
+}
+
+ctype modrmimm {
+  name = "::nnc::arch::x86_64::types::modrmimm";
+  default = [[ ::nnc::arch::x86_64::types::modrmimm() ]];
+  makeDefault = [[
+    if ( $var.empty() ) {
+      $member = ::nnc::arch::x86_64::types::modrmimm::imm(0, $rtlType);
+    }
+  ]];
+  visitOperands = "$member.visit(\"$name\", $visitor);";
+  acceptsRtlType = true;
+}
