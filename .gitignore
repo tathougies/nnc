@@ -1,3 +1,7 @@
+insnsel/lexer.cpp
+insnsel/parser.cpp
+FlexLexer.h
+\#*
 main
 archdescc
 Makefile

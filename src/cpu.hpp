@@ -101,7 +101,7 @@ namespace nnc {
     class MemTensor : public virtual TensorShape {
     public:
       MemTensor(const MemTensor &t);
-      MemTensor(const CpuMemIndex &sourceIndex, const TensorShape &shape);
+      MemTensor(const CpuMemIndex &sourceIndex, std::size_t batchSize, const TensorShape &shape);
 
       MemTensor &operator=(const MemTensor &t);
       void swap(MemTensor &a);
@@ -117,6 +117,7 @@ namespace nnc {
 
     private:
       CpuMemIndex m_index;
+      std::size_t m_batchSize;
 
       std::vector<AxisStride> m_stride;
     };

@@ -72,8 +72,8 @@ namespace nnc {
     void DataflowAnalysis::addOriginatingBlock(std::shared_ptr<RtlVariable> var,
                                                const RtlBlockName &block) {
       auto it(m_producers.find(var));
-      if ( it != m_producers.end() )
-        throw exception::RtlVariableWrittenTwice(var, it->second, block);
+      if ( it != m_producers.end() ) return;
+      //        throw exception::RtlVariableWrittenTwice(var, it->second, block);
 
       m_producers.insert(std::make_pair(var, block));
     }

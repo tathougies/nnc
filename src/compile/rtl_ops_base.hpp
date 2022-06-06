@@ -26,11 +26,7 @@ namespace nnc {
       void alias(std::shared_ptr<RtlVariable> a);
 
       inline bool isSame(std::shared_ptr<RtlVariable> o) {
-        if ( o.get() == this ) return true;
-        else if ( repr().get() != this )
-          return repr()->isSame(o->repr());
-        else
-          return false;
+        return o->repr() == repr();
       }
 
     protected:
@@ -41,6 +37,8 @@ namespace nnc {
       std::shared_ptr<RtlType> m_type;
       std::shared_ptr<RtlVariable> m_alias;
     };
+
+    typedef std::shared_ptr<RtlVariable> RtlVariablePtr;
 
     class RtlOperandVisitor {
     public:

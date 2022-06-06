@@ -346,7 +346,7 @@ private:
       o << "(branches[" << baseIx << "] == 0 || branches[" << baseIx << "] == " << altNum << ")";
     }
     void updateRule(std::ostream &o, const std::string &what) const {
-      o << what << "->branches[" << baseIx << "] = " << altNum << ";" << std::endl;
+      o << what << ".branches[" << baseIx << "] = " << altNum << ";" << std::endl;
     }
 
     int baseIx, nextBaseIx, maxSubCount, subCount, altNum;
@@ -383,7 +383,7 @@ public:
 
       h.indent(2) << "if ( matcher.complete() ) {" << std::endl;
       // Now check each argument
-      h.indent(3) << "newRule = new " << cName(rule.name()) << "(*this);" << std::endl;
+      h.indent(3) << cName(rule.name()) << " newRule(*this);" << std::endl;
 
       // Update branches
       for (const auto &br: m_branches)
@@ -396,35 +396,36 @@ public:
         switch ( var.second->type() ) {
         case InsnVariable::ConstantType:
           h.indent(3) << "if ( " << v.str() << ".data() && !std::equal(std::begin(" << v.str() << "), std::end(" << v.str() << "), std::begin(matcher." << v.str() << "), std::end(matcher." << v.str() << ")) ) goto skip_insn_" << insnnum << ";" << std::endl;
-          h.indent(3) << "else if ( !" << v.str() << ".data() ) newRule->" << v.str() << " = matcher." << v.str() << ";" << std::endl;
+          h.indent(3) << "else if ( !" << v.str() << ".data() ) newRule." << v.str() << " = matcher." << v.str() << ";" << std::endl;
           break;
 
         case InsnVariable::RegisterType:
           h.indent(3) << "if ( var_" << cName(var.first) << " && !(var_" << cName(var.first) << "->isSame(matcher.var_" << cName(var.first) << ")) ) goto skip_insn_" << insnnum << ";" << std::endl;
-          h.indent(3) << "else if ( !var_" << cName(var.first) << ") newRule->var_" << cName(var.first) << " = matcher.var_" << cName(var.first) << ";" << std::endl << std::endl;
+          h.indent(3) << "else if ( !var_" << cName(var.first) << ") newRule.var_" << cName(var.first) << " = matcher.var_" << cName(var.first) << ";" << std::endl << std::endl;
           break;
 
         default:
           h.indent(3) << "if ( var_" << cName(var.first) << " && var_" << cName(var.first) << "!= matcher.var_" << cName(var.first) << " ) goto skip_insn_" << insnnum << ";" << std::endl;
-          h.indent(3) << "else if ( !var_" << cName(var.first) << ") newRule->var_" << cName(var.first) << " = matcher.var_" << cName(var.first) << ";" << std::endl << std::endl;
+          h.indent(3) << "else if ( !var_" << cName(var.first) << ") newRule.var_" << cName(var.first) << " = matcher.var_" << cName(var.first) << ";" << std::endl << std::endl;
           break;
         };
       }
 
-      h.indent(3) << "newRule->ops[" << insnnum << "] = &op;" << std::endl;
-      h.indent(3) << "if ( newRule->complete() ) {" << std::endl;
-      h.indent(4) << "if ( newRule->check() ) {" << std::endl;
-      h.indent(5) << "std::unique_ptr<::nnc::compile::SelectedInsn> selInsnPtr(static_cast<::nnc::compile::SelectedInsn *>(newRule));" << std::endl;
+      h.indent(3) << "newRule.ops[" << insnnum << "] = &op;" << std::endl;
+      h.indent(3) << "if ( newRule.complete() ) {" << std::endl;
+      h.indent(4) << "if ( newRule.check(fn) ) {" << std::endl;
+      h.indent(5) << "auto *selected(new " << cName(rule.name()) << "(newRule));" << std::endl;
+      h.indent(5) << "std::unique_ptr<::nnc::compile::SelectedInsn> selInsnPtr(static_cast<::nnc::compile::SelectedInsn *>(selected));" << std::endl;
       h.indent(5) << "sel.markInsnSchedulable(std::move(selInsnPtr));" << std::endl;
       h.indent(4) << "}" << std::endl;
       h.indent(3) << "}" << std::endl;
-      h.indent(3) << "if ( newRule->canContinue() ) {" << std::endl;
-      h.indent(4) << "std::unique_ptr<::nnc::compile::InsnSelRule> newRulePtr(static_cast<::nnc::compile::InsnSelRule *>(newRule));" << std::endl;
+      h.indent(3) << "if ( newRule.canContinue() ) {" << std::endl;
+      h.indent(4) << "auto *nextInsn(new " << cName(rule.name()) << "(newRule));" << std::endl;
+      h.indent(4) << "std::unique_ptr<::nnc::compile::InsnSelRule> newRulePtr(static_cast<::nnc::compile::InsnSelRule *>(nextInsn));" << std::endl;
       h.indent(4) << "sel.addRule(std::move(newRulePtr));" << std::endl;
       h.indent(3) << "}" << std::endl;
-      h.indent(3) << "newRule = nullptr;" << std::endl;
       h.indent(2) << "skip_insn_" << insnnum << ":" << std::endl;
-      h.indent(3) << "delete newRule;" << std::endl;
+      h.indent(3) << "(void)0;" << std::endl;
       h.indent(2) << "}" << std::endl;
       h.indent(1) << "}" << std::endl;
     }
@@ -547,89 +548,240 @@ private:
   int m_startIx, m_endIx;
 };
 
-class CompleteGen : public InsnPatternVisitor {
+class BranchTracker : public virtual InsnPatternVisitor {
+protected:
+  class branch {
+  public:
+    branch(int brNum) : m_startNum(brNum), m_nextNum(brNum + 1), m_maxNum(brNum + 1), m_altCount(0) { }
+
+    int curBranchNum() const { return m_startNum; }
+    int nextBranchNum() const { return m_nextNum; }
+    int maxBranchNum() const { return m_maxNum; }
+    void updateMaxNum(int nextNum) { if ( nextNum > m_maxNum) m_maxNum = nextNum; }
+
+    void reset() { m_nextNum = m_startNum + 1; m_altCount++; }
+
+    int curAltNum() const { return m_altCount; }
+
+  private:
+    int m_startNum, m_nextNum, m_maxNum, m_altCount;
+  };
 public:
-  CompleteGen(IndentedHeaderBase &b)
-    : m_header(b), m_opNum(0), m_branches(nullptr) {
-    m_header.indent() << "return ";
-    pushConjunction();
+  BranchTracker() : m_branchNum(0) { }
+
+  virtual void newBranch() {
+    m_branches.emplace_back(nextBranchNum());
   }
 
-  virtual ~CompleteGen() {
+  virtual void endBranch() {
+    auto nextNum(m_branches.back().maxBranchNum());
+    m_branches.pop_back();
+
+    if ( m_branches.empty() )
+      m_branchNum = nextNum;
+    else
+      m_branches.back().updateMaxNum(nextNum);
+  }
+
+  virtual void newAlternative() {
+    auto &br(m_branches.back());
+    br.reset();
+  }
+
+  void endAllBranches() {
+    while ( branchLevel() > 0 ) endBranch();
+  }
+
+protected:
+  int curBranchNum() const {
+    if ( m_branches.empty() ) return m_branchNum;
+    else {
+      return m_branches.back().curBranchNum();
+    }
+  }
+
+  int nextBranchNum() const {
+    if ( m_branches.empty() ) return m_branchNum;
+    else return m_branches.back().nextBranchNum();
+  }
+
+  int curAltNum() const {
+    if ( m_branches.empty() ) return 0;
+    else return m_branches.back().curAltNum();
+  }
+
+  int branchLevel() const { return m_branches.size(); }
+
+  const std::list<branch> &branches() const { return m_branches; }
+
+private:
+  int m_branchNum;
+  std::list<branch> m_branches;
+};
+
+class CompleteGen : public virtual BranchTracker, public virtual InsnPatternVisitor {
+public:
+  CompleteGen(IndentedHeaderBase &h)
+    : m_header(h), m_opNum(0) {
   }
 
   void finish() {
-    while ( m_branches ) {
-      CompleteExpr *next(m_branches->parent());
-      delete m_branches;
-      m_branches = next;
-    }
-    m_header.noindent() << ";" << std::endl;
+    endAllBranches();
+    indent() << "return true;" << std::endl;
   }
 
   virtual void visit(const InsnPattern &p) {
-    curConj().include(m_opNum);
+    indent() << "if( !ops[" << m_opNum << "]";
+    for ( const auto &branch: branches() )
+      out() << " && branches[" << branch.curBranchNum() << "] == " << branch.curAltNum();
+    out() << " ) return false;" << std::endl;
+
+    m_opNum++;
+    m_hasOps.back() = true;
+  }
+
+  virtual void newBranch() {
+    BranchTracker::newBranch();
+    m_hasOps.push_back(true);
+    m_hasEmptyAlt.push_back(false);
+  }
+
+  virtual void endBranch() {
+    checkEmptyAlt();
+
+    m_hasOps.pop_back();
+    auto hasEmptyAlt(m_hasEmptyAlt.back());
+    m_hasEmptyAlt.pop_back();
+
+    auto brNum(curBranchNum());
+    BranchTracker::endBranch();
+
+    if ( !hasEmptyAlt ) {
+      indent() << "if ( branches[" << brNum << "] == 0";
+      for ( const auto &br: branches() )
+        out() << " && branches[" << br.curBranchNum() << "] == " << br.curAltNum();
+      out() << ") return false;" << std::endl;
+    }
+  }
+
+  virtual void newAlternative() {
+    checkEmptyAlt();
+    BranchTracker::newAlternative();
+
+    m_hasOps.back() = false;
+  }
+
+private:
+  void checkEmptyAlt() {
+    if ( !m_hasOps.back() )
+      m_hasEmptyAlt.back() = true;
+  }
+
+  std::ostream &indent(int extraNum = 0) const {
+    return m_header.indent(branchLevel() + extraNum);
+  }
+
+  std::ostream &out() const {
+    return m_header.noindent();
+  }
+
+  IndentedHeaderBase &m_header;
+  int m_opNum;
+  std::list<bool> m_hasOps, m_hasEmptyAlt;
+};
+
+class CanContinueGen : public virtual BranchTracker, public virtual InsnPatternVisitor {
+public:
+  CanContinueGen(IndentedHeaderBase &h)
+    : m_header(h), m_opNum(0) {
+  }
+
+  virtual ~CanContinueGen() {
+  }
+
+  void finish() {
+    endAllBranches();
+    indent() << "return false;" << std::endl;
+  }
+
+  virtual void visit(const InsnPattern &p) {
+    indent() << "if ( !ops[" << m_opNum << "] ) return true;" << std::endl;
     m_opNum++;
   }
 
   virtual void newBranch() {
-    pushDisjunction();
+    indent() << "if ( branches[" << curBranchNum() << "] == 0 ) return true;" << std::endl;
+    BranchTracker::newBranch();
   }
 
   virtual void newAlternative() {
-    if ( m_branches && m_branches->type() == CompleteExpr::Conjunction ) {
-      auto branch(m_branches);
-      m_branches = m_branches->parent();
-      delete branch;
-      newAlternative();
-    }
-    pushConjunction();
+    auto altNum(curAltNum());
+    BranchTracker::newAlternative();
+    if ( altNum > 0 ) indent(-1) << "}" << std::endl;
+    indent(-1) << "if ( branches[" << curBranchNum() << "] == " << curAltNum() << " ) {" << std::endl;
   }
 
   virtual void endBranch() {
-    popDisjunction();
+    auto altNum(curAltNum());
+    BranchTracker::endBranch();
+    if ( altNum > 0 ) indent() << "}" << std::endl;
   }
 
 private:
-  CompleteExpr &curConj() {
-    pushConjunction();
-    return *m_branches;
+  std::ostream &indent(int extra = 0) {
+    return m_header.indent(branchLevel() + extra);
   }
-
-  void pushConjunction() {
-    if ( !m_branches ) {
-      m_branches = new CompleteExpr(m_header.noindent(), CompleteExpr::Conjunction);
-    } else {
-      m_branches = new CompleteExpr(m_branches, CompleteExpr::Conjunction);
-    }
-  }
-
-  void pushDisjunction() {
-    if ( !m_branches ) {
-      m_branches = new CompleteExpr(m_header.noindent(), CompleteExpr::Disjunction);
-    } else {
-      m_branches = new CompleteExpr(m_branches, CompleteExpr::Disjunction);
-    }
-  }
-
-  void popDisjunction() {
-    if ( !m_branches ) return;
-    else if ( m_branches->type() == CompleteExpr::Conjunction ) {
-      auto branch(m_branches);
-      m_branches = m_branches->parent();
-      delete branch;
-      popDisjunction();
-    } else {
-      auto branch(m_branches);
-      m_branches = m_branches->parent();
-      delete branch;
-    }
-  }
-
 
   IndentedHeaderBase &m_header;
   int m_opNum;
-  CompleteExpr *m_branches;
+};
+
+class SettersOutputter : public InsnVarType::SettersVisitor {
+public:
+  SettersOutputter(const std::string &baseNm, IndentedHeaderBase &b)
+    : m_header(b), m_baseName(baseNm) {
+    m_args.insert(std::make_pair("member", "m_" + cName(baseNm)));
+    m_args.insert(std::make_pair("new", "var"));
+  }
+
+  virtual ~SettersOutputter() {
+  }
+
+  virtual void setter(const std::string &nm, const template_string &v) {
+    m_header.noindent() << " else if ( nm == \"" << m_baseName << "." << nm << "\" ) {" << std::endl;
+    m_header.noindent() << v.render(m_args);
+    m_header.indent(-1) << "}";
+  }
+
+private:
+  IndentedHeaderBase &m_header;
+  const std::string &m_baseName;
+  std::map<std::string, std::string> m_args;
+};
+
+class ConsumedOperationsGen : public OpMarker {
+public:
+  ConsumedOperationsGen(const std::string &nm, const IndentedHeaderBase &out)
+    : m_name(nm), m_out(out), m_index(0) {
+  }
+  virtual ~ConsumedOperationsGen() { }
+
+  inline const IndentedHeaderBase &out() const { return m_out; }
+
+  virtual void mark() override {
+    out().indent() << "if ( ops[" << m_index << "] ) " << m_name << ".matchOp(ops[" << m_index << "]);" << std::endl;
+    m_index++;
+  }
+
+  virtual void skip() override {
+    m_index++;
+  }
+
+private:
+  std::string m_name;
+  const IndentedHeaderBase &m_out;
+
+  int m_index;
 };
 
 FilesystemGenerator::FilesystemGenerator(const std::filesystem::path &base)
@@ -678,6 +830,25 @@ void DepsDumper::generate(const std::filesystem::path &outPath,
 ArchDescBuilder::ArchDescBuilder() {
 }
 
+void ArchDescBuilder::param(const std::string &name, Literal &value) {
+  if ( name == "architecture" ) {
+    std::string nm;
+    SetStringLiteral set(nm, WarnMissing("architecture", "string"));
+    value.visit(set);
+    m_name = nm;
+  } else if ( name == "defaultCallingConvention" ) {
+    SetStringLiteral set(m_defCallConv, WarnMissing("architecture", "string"));
+    value.visit(set);
+  } else if ( name == "opcodeBuilder" ) {
+    SetStringLiteral set(m_opcodeBuilder, WarnMissing("opcodeBuilder", "string"));
+    value.visit(set);
+  } else if ( name == "defaultEncoder" ) {
+    SetStringLiteral set(m_defaultInsnEncoder, WarnMissing("defaultEncoder", "string"));
+    value.visit(set);
+  } else
+    std::cerr << "Parameter " << name << " not valid for arch desc" << std::endl;
+}
+
 void ArchDescBuilder::setArchitecture(const std::string &name) {
   if ( m_name ) {
     std::cerr << "TODO name given twice" << std::endl;
@@ -722,13 +893,21 @@ void ArchDescBuilder::addInsn(Insn *i) {
   m_insns.emplace_back(i);
 }
 
-void ArchDescBuilder::addRegister(Register *r) {
-  std::unique_ptr<Register> uniq(r);
-  m_registers[uniq->name()] = std::move(uniq);
+RegisterFactory &ArchDescBuilder::getRegister(const std::string &nm) {
+  auto it(m_registers.find(nm));
+
+  if ( it == m_registers.end() ) {
+    RegisterBase reg;
+    auto res(m_registers.emplace(nm, std::make_unique<RegisterFactory>()));
+    it = res.first;
+  }
+
+  return *it->second;
 }
 
 void ArchDescBuilder::addRegisterClass(RegClass *rc) {
   std::unique_ptr<RegClass> uniq(rc);
+  rc->ensureRegisters(*this);
   m_regClass[uniq->name()] = std::move(uniq);
 }
 
@@ -747,6 +926,195 @@ void ArchDescBuilder::generate(GenerateVisitor &v) {
   v.generate("insns.hpp", std::bind(&ArchDescBuilder::generateInsnsHeader, this, std::placeholders::_1));
   v.generate("rules.cpp", std::bind(&ArchDescBuilder::generateRuleImpl, this, std::placeholders::_1));
   v.generate("insns.cpp", std::bind(&ArchDescBuilder::generateInsnsImpl, this, std::placeholders::_1));
+
+  v.generate("registers.hpp", std::bind(&ArchDescBuilder::generateRegistersHeader, this, std::placeholders::_1));
+  v.generate("registers.cpp", std::bind(&ArchDescBuilder::generateRegistersImpl, this, std::placeholders::_1));
+}
+
+void ArchDescBuilder::generateRegistersHeader(const std::filesystem::path &outPath) {
+  std::fstream out(outPath.native(), std::fstream::out);
+  if ( out.bad() ) {
+    std::cerr << "Could not generate " << outPath << std::endl;
+    return;
+  }
+
+  StandardHeader h(out, *this, "registers");
+
+  h.noindent() << "#include \"compile/regalloc.hpp\"" << std::endl;
+  h.noindent() << "#include \"compile/registers.hpp\"" << std::endl;
+
+  h.pushNamespace("nnc");
+  h.pushNamespace("arch");
+  h.pushNamespace(cArchName());
+
+  h.indent() << "class RegisterFile : public virtual ::nnc::compile::RegisterFile {" << std::endl;
+  h.indent() << "public:" << std::endl;
+  h.indent(1) << "RegisterFile();" << std::endl;
+  h.indent(1) << "virtual ~RegisterFile();" << std::endl << std::endl;
+  h.indent(1) << "virtual ::nnc::compile::Register lookupRegister(const std::string &name) const;" << std::endl << std::endl;
+  h.indent(1) << "virtual const char *registerName(int ix) const;" << std::endl;
+  h.indent(1) << "virtual const char *regclassName(int ix) const;" << std::endl;
+  h.indent(1) << "virtual int regclassCount() const;" << std::endl;
+  h.indent(1) << "virtual bool registerInClass(int regIx, int regClass) const;" << std::endl << std::endl;
+  h.indent(1) << "virtual int registerCount() const;" << std::endl << std::endl;
+
+  int regIx(0);
+  for ( const auto &reg: m_registers ) {
+    h.indent(1) << "::nnc::compile::Register " << cName(reg.first) << "() const;" << std::endl;
+    regIx++;
+  }
+
+  h.indent() << "protected:" << std::endl;
+  h.indent(1) << "virtual const char *registerFileName() const;" << std::endl;
+  h.indent() << "private:" << std::endl;
+  h.indent() << "};" << std::endl;
+
+  h.noindent() << "#ifndef REG_IMPL" << std::endl;
+  h.indent()   << "extern RegisterFile registers;" << std::endl;
+  h.noindent() << "#endif" << std::endl;
+
+  h.pushNamespace("regclass");
+
+  for ( const auto &cls: m_regClass ) {
+    auto clsName(cName(cls.first));
+    h.indent() << "class " << clsName << "_class : public ::nnc::compile::RegClass {" << std::endl;
+    h.indent() << "public:" << std::endl;
+    h.indent(1) << "virtual ~" << clsName << "_class();" << std::endl;
+    h.indent(1) << "virtual int index() const override;" << std::endl;
+    h.indent(1) << "virtual const char *name() const override;" << std::endl;
+    h.indent(1) << "virtual const char *desc() const override;" << std::endl;
+    h.indent(1) << "virtual RegisterFile &registers() const override;" << std::endl;
+    h.indent(1) << "virtual void visitRegisters(::nnc::compile::RegClassMembers &decl) const override;" << std::endl;
+    h.indent() << "};" << std::endl << std::endl;
+    h.noindent() << "#ifndef REG_IMPL" << std::endl;
+    h.indent() << "extern " << clsName << "_class " << clsName << ";" << std::endl;
+    h.noindent() << "#endif" << std::endl << std::endl;
+  }
+}
+
+void ArchDescBuilder::generateRegistersImpl(const std::filesystem::path &outPath) {
+  std::fstream out(outPath.native(), std::fstream::out);
+  if ( out.bad() ) {
+    std::cerr << "Could not generate " << outPath << std::endl;
+    return;
+  }
+
+  StandardImpl h(out);
+
+  h.noindent() << "#define REG_IMPL" << std::endl;
+  h.noindent() << "#include \"arch/" << cArchName() << "/registers.hpp\"" << std::endl;
+
+  h.noindent() << "using namespace ::nnc::compile;";
+
+  h.pushNamespace("nnc");
+  h.pushNamespace("arch");
+  h.pushNamespace(cArchName());
+
+  h.indent() << "RegisterFile registers;" << std::endl << std::endl;
+
+  h.indent() << "RegisterFile::RegisterFile() { }" << std::endl;
+  h.noindent() << std::endl;
+
+  h.indent() << "RegisterFile::~RegisterFile() { }" << std::endl;
+  h.noindent() << std::endl;
+
+  for ( auto [it, i ] = std::tuple { m_registers.begin(), 0 };
+        it != m_registers.end();
+        it++, i++ ) {
+    h.indent() << "::nnc::compile::Register RegisterFile::" << cName(it->first) << "() const {" << std::endl;
+    h.indent(1) << "return Register(&registers, " << i << ");" << std::endl;
+    h.indent() << "}" << std::endl;
+  }
+
+  h.indent() << "Register RegisterFile::lookupRegister(const std::string &name) const {" << std::endl;
+  for ( auto [it, i] = std::tuple { m_registers.begin(), 0 };
+        it != m_registers.end();
+        it++, i++ ) {
+    if ( it != m_registers.begin() )
+      h.indent(1) << "else ";
+    else
+      h.indent(1);
+    h.noindent() << "if ( name == \"" << it->first << "\" ) return Register(this, " << i << ");" << std::endl;
+  }
+  h.noindent() << std::endl;
+  h.indent(1) << "throw ::nnc::exception::RegisterDoesNotExist(this, name);" << std::endl;
+  h.indent() << "}" << std::endl << std::endl;
+
+  h.indent() << "const char *RegisterFile::registerName(int ix) const {" << std::endl;
+  h.indent(1) << "switch ( ix ) {" << std::endl;
+  for ( auto [ it, i ] = std::tuple { m_registers.begin(), 0 };
+        it != m_registers.end();
+        it++, i++ ) {
+    h.indent(1) << "case " << i << ": return \"" << it->first << "\";" << std::endl;
+  }
+  h.indent(1) << "default:" << std::endl;
+  h.indent(2) << "throw ::nnc::exception::RegisterIndexOutOfRange(ix, registerCount());" << std::endl;
+  h.indent(1) << "}" << std::endl;
+  h.indent() << "}" << std::endl << std::endl;
+
+  h.indent() << "const char *RegisterFile::regclassName(int ix) const {" << std::endl;
+  h.indent(1) << "switch ( ix ) {" << std::endl;
+  for ( auto [it, i] = std::tuple { m_regClass.begin(), 0 };
+        it != m_regClass.end();
+        it++, i++ ) {
+    h.indent(1) << "case " << i << ": return \"" << it->first << "\";" << std::endl;
+  }
+  h.indent(1) << "default:" << std::endl;
+  h.indent(2) << "throw ::nnc::exception::RegisterIndexOutOfRange(ix, regclassCount());" << std::endl;
+  h.indent(1) << "}" << std::endl;
+  h.indent() << "}" << std::endl << std::endl;
+
+  h.indent() << "int RegisterFile::regclassCount() const {" << std::endl;
+  h.indent(1) << "return " << m_regClass.size() << ";" << std::endl;
+  h.indent() << "}" << std::endl << std::endl;
+
+  h.indent() << "bool RegisterFile::registerInClass(int regIx, int regClass) const {" << std::endl;
+  h.indent(1) << "switch ( regClass ) {" << std::endl;
+  for ( auto [clsIt, clsIx] = std::tuple { m_regClass.begin(), 0 };
+        clsIt != m_regClass.end();
+        clsIt++, clsIx++ ) {
+    h.indent(1) << "case " << clsIx << ":" << std::endl;
+    h.indent(2) << "switch ( regIx ) {" << std::endl;
+    for ( const auto &regNm: *clsIt->second ) {
+      getRegister(regNm);
+      auto regIt(m_registers.find(regNm));
+      int regIx(std::distance(m_registers.begin(), regIt));
+      h.indent(2) << "case " << regIx << ": return true;" << std::endl;
+    }
+    h.indent(2) << "default: return false;" << std::endl;
+    h.indent(2) << "}" << std::endl;
+  }
+  h.indent(1) << "default: return false;" << std::endl;
+  h.indent(1) << "}" << std::endl;
+  h.indent() << "}" << std::endl << std::endl;
+
+  h.indent() << "int RegisterFile::registerCount() const {" << std::endl;
+  h.indent(1) << "return " << m_registers.size() << ";" << std::endl;
+  h.indent() << "}" << std::endl << std::endl;
+
+  h.indent() << "const char *RegisterFile::registerFileName() const {" << std::endl;
+  h.indent(1) << "return \"" << *m_name << "\";" << std::endl;
+  h.indent() << "}" << std::endl << std::endl;
+
+  h.pushNamespace("regclass");
+
+  int clsIx(0);
+  for ( const auto &cls: m_regClass ) {
+    auto clsName(cName(cls.first));
+    h.indent() << clsName << "_class " << clsName << ";" << std::endl << std::endl;
+    h.indent() << clsName << "_class::~" << clsName << "_class() { }" << std::endl << std::endl;
+    h.indent() << "const char *" << clsName << "_class::name() const { return \"" << cls.first << "\"; }" << std::endl << std::endl;
+    h.indent() << "int " << clsName << "_class::index() const { return " << clsIx << "; }" << std::endl << std::endl;
+    h.indent() << "const char *" << clsName << "_class::desc() const { return \"" << cls.second->doc() << "\"; }" << std::endl << std::endl;
+    h.indent() << "RegisterFile &" << clsName << "_class::registers() const { return ::nnc::arch::" << cArchName() << "::registers; }" << std::endl;
+    h.indent() << "void " << clsName << "_class::visitRegisters(::nnc::compile::RegClassMembers &decl) const {" << std::endl;
+    for ( const auto &reg: *cls.second ) {
+      h.indent(1) << "decl.reg(::nnc::arch::" << cArchName() << "::registers.lookupRegister(\"" << reg << "\"));" << std::endl;
+    }
+    h.indent() << "}" << std::endl;
+
+    clsIx++;
+  }
 }
 
 void ArchDescBuilder::generateInsnsImpl(const std::filesystem::path &outPath) {
@@ -759,6 +1127,7 @@ void ArchDescBuilder::generateInsnsImpl(const std::filesystem::path &outPath) {
   StandardImpl h(out);
 
   h.noindent() << "#include \"arch/" << cArchName() << "/insns.hpp\"" << std::endl;
+  h.noindent() << "#include \"arch/" << cArchName() << "/registers.hpp\"" << std::endl;
   h.noindent() << "#include \"exception.hpp\"" << std::endl;
   h.noindent() << "#include \"compile/rtl_ops.hpp\"" << std::endl;
   h.noindent() << std::endl;
@@ -773,9 +1142,12 @@ void ArchDescBuilder::generateInsnsImpl(const std::filesystem::path &outPath) {
     h.indent() << clsNm << "::";
     insn->declareConstructor(clsNm, h.noindent()) << std::endl;
 
+    std::map<std::string, std::string> vars;
+
     h.indent(1) << ": ::nnc::compile::RtlOp(\"" << insn->name() << "\")" << std::endl;
     for ( const auto &arg : insn->args() ) {
       h.indent(1) << ", " << "m_" << cName(arg.name(), false) << "(" << cName(arg.name()) << ")" << std::endl;
+      vars[arg.name()] = "m_" + cName(arg.name(), false);
     }
     h.indent() << "{" << std::endl;
     for ( const auto &arg: insn->args() ) {
@@ -797,14 +1169,83 @@ void ArchDescBuilder::generateInsnsImpl(const std::filesystem::path &outPath) {
     }
     h.indent() << "}" << std::endl << std::endl;
 
-    h.indent() << declMember("void", clsNm, "operand").arg("const std::string &nm").arg("std::shared_ptr<::nnc::compile::RtlVariable> var") << "{" << std::endl;
-    for ( const auto &arg : insn->args() ) {
-      h.indent(1) << "if (nm == \"" << arg.name() << "\") {" << std::endl;
-      h.indent(2) << "m_" << cName(arg.name(), false) << " = var;" << std::endl;
-      h.indent(1) << "}" << std::endl;
+    h.indent() << declMember("void", clsNm, "regclasses").arg("::nnc::compile::RegClassDeclarer &decl")._const() << "{" << std::endl;
+    for ( const auto &arg: insn->args() ) {
+      if ( arg.type().hasRegClass() ) {
+        arg.type().outputRegClasses("decl", arg.name(), "m_" + cName(arg.name()), h.indent(1));
+      }
     }
-    h.indent(1) << "throw exception::RtlOpArgDoesNotExist(nm);" << std::endl;
+    for ( const auto &i: insn->intersects() ) {
+      InsnArgDecl &d(insn->arg(i.a()));
+      bool hasCond(i.hasCondition());
+      int intersectIndent(1);
+
+      if ( hasCond ) {
+        h.indent(1) << "if ( " << i.condition().render(vars) << " ) {" << std::endl;;
+        intersectIndent = 2;
+      }
+      d.type().outputIntersect("decl", "m_" + cName(i.a()), "m_" + cName(i.b()),
+                               i.regclass(), h.indent(intersectIndent));
+      if ( hasCond )
+        h.indent(1) << "}" << std::endl;
+    }
     h.indent() << "}" << std::endl << std::endl;
+
+    h.indent() << declMember("void", clsNm, "operand").arg("const std::string &nm").arg("std::shared_ptr<::nnc::compile::RtlVariable> var") << "{" << std::endl;
+
+    bool first_setter(true);
+    for ( const auto &arg : insn->args() ) {
+      if ( !first_setter ) {
+        h.noindent() << " else ";
+      } else {
+        first_setter = false;
+        h.indent(1);
+      }
+
+      h.noindent() << "if (nm == \"" << arg.name() << "\") {" << std::endl;
+      h.indent(2) << "m_" << cName(arg.name(), false) << " = var;" << std::endl;
+      h.indent(1) << "}";
+
+      // Check if the args ctype has any setters defined
+      IndentedHeader ch(h, 1);
+      SettersOutputter setters(arg.name(), ch);
+      arg.type().setters(setters);
+    }
+
+    if ( first_setter ) h.indent(1);
+    else {
+      h.noindent() << " else" << std::endl;
+      h.indent(2);
+    }
+
+    h.noindent() << "throw exception::RtlOpArgDoesNotExist(nm);" << std::endl;
+    h.indent() << "}" << std::endl << std::endl;
+
+    h.indent() << declMember("std::uint64_t", clsNm, "cost")._const() << "{ return " << insn->cost() << "; }" << std::endl << std::endl;
+
+    h.indent() << declMember("std::ostream &", clsNm, "encode").arg("const ::nnc::compile::RtlRegisterMapper &inputs").arg("const ::nnc::compile::RtlRegisterMapper &outputs").arg("std::ostream &out")._const() << "{" << std::endl;
+    if ( insn->hasCustomEmit() ) {
+      std::map<std::string, std::string> varNms;
+      for ( const auto &var : insn->args() ) {
+        std::stringstream ref;
+
+        ref << "(this->m_" << cName(var.name()) << ")";
+
+        varNms.emplace(var.name(), ref.str());
+      }
+      h.indent(1) << insn->customEmit().render(varNms) << std::endl;
+    } else {
+      h.indent(1) << m_opcodeBuilder << "(inputs, outputs, out)." << clsNm << "(";
+      bool first(true);
+      for ( const auto &arg: insn->args() ) {
+        if ( !first ) h.noindent() << ", ";
+        h.noindent() << "m_" << cName(arg.name());
+        first = false;
+      }
+      h.noindent() << ");" << std::endl;
+    }
+    h.indent(1) << "return out;" << std::endl;
+    h.indent() << "}" << std::endl;
   }
 }
 
@@ -812,7 +1253,6 @@ void ArchDescBuilder::generateApply(InsnRule &rule, const IndentedHeaderBase &h)
   std::set<std::string> m_handled;
 
   h.indent() << "::nnc::compile::RtlFunction &fn(sel.function());" << std::endl;
-  h.indent() << cName(rule.name()) << " *newRule;" << std::endl;
 
   MnemonicsCollector c;
   rule.pats().declMnemonicInterest(c);
@@ -847,6 +1287,7 @@ void ArchDescBuilder::generateScheduleHeader(const std::filesystem::path &outPat
 
   StandardHeader h(out, *this, "schedule");
   h.indent() << "#include \"compile/genericschedule.hpp\"" << std::endl;
+  h.indent() << "#include \"compile/registers.hpp\"" << std::endl;
 
   h.pushNamespace("nnc");
   h.pushNamespace("arch");
@@ -856,10 +1297,9 @@ void ArchDescBuilder::generateScheduleHeader(const std::filesystem::path &outPat
   std::string scheduleClsNm("block_scheduler");
 
   h.indent() << "class " << scheduleClsNm << " : public ::nnc::compile::GenericScheduler {" << std::endl;
-  h.indent() << "public:";
-  h.indent(1) << scheduleClsNm << "(::nnc::compile::RtlFunction &dst, std::shared_ptr<::nnc::compile::RtlBasicBlock> b);" << std::endl;
-  h.indent(1) << "virtual ~" << scheduleClsNm << "();" << std::endl;
-  h.noindent() << std::endl;
+  h.indent() << "public:" << std::endl;
+  h.indent(1) << scheduleClsNm << "(::nnc::compile::GenericFunctionScheduler &dst, std::shared_ptr<::nnc::compile::RtlBasicBlock> b);" << std::endl;
+  h.indent(1) << "virtual ~" << scheduleClsNm << "();" << std::endl << std::endl;
   h.indent() << "protected:" << std::endl;
   h.indent(1) << "virtual void buildPatterns(::nnc::compile::InsnSelector &sel);" << std::endl;
   h.indent() << "};" << std::endl << std::endl;
@@ -869,8 +1309,12 @@ void ArchDescBuilder::generateScheduleHeader(const std::filesystem::path &outPat
   h.indent() << "public:" << std::endl;
   h.indent(1) << fnScheduleClsNm << "(::nnc::compile::RtlFunction &src);" << std::endl;
   h.indent(1) << "virtual ~" << fnScheduleClsNm << "();" << std::endl << std::endl;
+  h.indent(1) << "virtual ::nnc::compile::RegisterFile &registers() const override;" << std::endl << std::endl;
   h.indent() << "protected:" << std::endl;
   h.indent(1) << "virtual std::unique_ptr<::nnc::compile::GenericScheduler> makeBlockScheduler(std::shared_ptr<::nnc::compile::RtlBasicBlock> block);" << std::endl;
+  h.indent(1) << "virtual std::unique_ptr<::nnc::compile::CallingConvention> defaultCallingConvention() const;" << std::endl;
+  h.indent(1) << "virtual const ::nnc::compile::InsnEncoder &defaultInsnEncoder() const;" << std::endl;
+  h.indent(1) << m_defaultInsnEncoder << " m_encoder;" << std::endl;
   h.indent() << "};" << std::endl;
 }
 
@@ -885,6 +1329,8 @@ void ArchDescBuilder::generateInsnsHeader(const std::filesystem::path &outPath) 
   StandardHeader h(out, *this, "insns");
   h.indent() << "#include \"compile/rtl.hpp\"" << std::endl;
   h.indent() << "#include \"compile/rtl_ops_base.hpp\"" << std::endl;
+  h.indent() << "#include \"compile/encoding.hpp\"" << std::endl;
+  h.indent() << "#include \"compile/regalloc.hpp\"" << std::endl;
 
   h.pushNamespace("nnc");
   h.pushNamespace("arch");
@@ -892,7 +1338,7 @@ void ArchDescBuilder::generateInsnsHeader(const std::filesystem::path &outPath) 
   h.pushNamespace("insn");
 
   for ( const auto &insn : m_insns ) {
-    h.indent() << "class " << cName(insn->name()) << " : public ::nnc::compile::RtlOp {" << std::endl;
+    h.indent() << "class " << cName(insn->name()) << " : public ::nnc::compile::RtlOp, public ::nnc::compile::RtlRegisterOp, public ::nnc::compile::RtlEmitOp, public ::nnc::compile::RtlCostedOp {" << std::endl;
     h.indent() << "public:" << std::endl;
     insn->declareConstructor(cName(insn->name()), h.indent(1), true) << ";" << std::endl;
     h.indent(1) << "virtual ~" << cName(insn->name()) << "();" << std::endl;
@@ -901,6 +1347,9 @@ void ArchDescBuilder::generateInsnsHeader(const std::filesystem::path &outPath) 
     // RtlOp functions
     h.indent(1) << "virtual void operands(::nnc::compile::RtlOperandVisitor &v) const;" << std::endl;
     h.indent(1) << "virtual void operand(const std::string &nm, std::shared_ptr<::nnc::compile::RtlVariable> var);" << std::endl;
+    h.indent(1) << "virtual void regclasses(::nnc::compile::RegClassDeclarer &decl) const;" << std::endl;
+    h.indent(1) << "virtual std::ostream &encode(const ::nnc::compile::RtlRegisterMapper &inputs, const ::nnc::compile::RtlRegisterMapper &outputs, std::ostream &out) const override;" << std::endl;
+    h.indent(1) << "virtual std::uint64_t cost() const override;" << std::endl;
 
     h.noindent() << std::endl;
 
@@ -925,6 +1374,7 @@ void ArchDescBuilder::generateRuleImpl(const std::filesystem::path &outPath) {
 
   h.noindent() << "#include \"compile/insnsel.hpp\"" << std::endl;
   h.noindent() << "#include \"arch/" << cArchName() << "/schedule.hpp\"" << std::endl;
+  h.noindent() << "#include \"arch/" << cArchName() << "/registers.hpp\"" << std::endl;
   h.noindent() << "#include \"arch/" << cArchName() << "/insns.hpp\"" << std::endl;
   h.noindent() << std::endl;
   h.noindent() << "#include <algorithm>" << std::endl;
@@ -976,17 +1426,7 @@ void ArchDescBuilder::generateRuleImpl(const std::filesystem::path &outPath) {
     h.indent(1) << "}" << std::endl;
 
     // Copy constructor
-    h.indent(1) << cName(rule->name()) << "(const " << cName(rule->name()) << "& o)" << std::endl;
-    first = true;
-    for ( const auto &var : rule->vars() ) {
-      h.indent(1) << (first ? ": " : ", ") << "var_" << cName(var.first) << "(o.var_" << cName(var.first) << ")" << std::endl;
-      first = false;
-    }
-    h.indent(1) << "{" << std::endl;
-    h.indent(2) << "std::copy(std::begin(o.ops), std::end(o.ops), std::begin(ops));" << std::endl;
-    if ( mnemonics.hasBranches() )
-      h.indent(2) << "std::copy(std::begin(o.branches), std::end(o.branches), std::begin(branches));" << std::endl;
-    h.indent(1) << "}" << std::endl;
+    h.indent(1) << cName(rule->name()) << "(const " << cName(rule->name()) << "& o) =default;" << std::endl;
 
     h.indent(1) << "virtual ~" << cName(rule->name()) << "() { }" << std::endl << std::endl;
 
@@ -1003,98 +1443,129 @@ void ArchDescBuilder::generateRuleImpl(const std::filesystem::path &outPath) {
 
     // SelectedInsn
     h.indent(1) << "virtual void consumedOperations(::nnc::compile::RtlOpMarker &marker) const {" << std::endl;
-    h.indent(2) << "for ( int i = 0; i < " << mnemonics.patternCount() << "; ++i) {" << std::endl;
-    h.indent(3) << "if (ops[i]) marker.matchOp(ops[i]);" << std::endl;
-    h.indent(2) << "}" << std::endl;
+    ConsumedOperationsGen consumedOps("marker", IndentedHeader(h, 2));
+    rule->pats().markOps(consumedOps);
     h.indent(1) << "}" << std::endl << std::endl;
 
-    h.indent(1) << "virtual void build(::nnc::compile::RtlBasicBlock &compiled) const {" << std::endl;
+    h.indent(1) << "virtual void build(::nnc::compile::RtlOpSelector &compiled) const {" << std::endl;
     for ( const auto &g : rule->generated() ) {
-      auto &insn(lookupInsn(g.mnemonic(), g.errorContext()));
+      if ( g.isTemplate() ) {
+        auto genNms(varNms);
+        genNms.emplace("fn", "(compiled.function())");
+        genNms.emplace("builder", "compiled");
+        h.indent(2) << g.literal().render(genNms) << std::endl;
+      } else {
+        auto &insn(lookupInsn(g.mnemonic(), g.errorContext()));
+        if ( g.hasConds() ) {
+          h.indent(2) << "if (";
+          bool first(true);
+          for ( const auto &cond: g.conds() ) {
+            if ( !first ) h.noindent() << " && ";
+            h.noindent() << cond.render(varNms);
+            first = false;
+          }
+          h.noindent() << ")";
+        } else
+          h.indent(2);
+        h.noindent() << "compiled.emplace_op<" << cInsnName(g.mnemonic()) << ">(compiled.function()";
+        std::set<std::string> argsReceived;
+        auto sig(insn.args().begin());
+        std::vector<std::optional<std::string>> args(insn.args().size());
+        auto out(args.begin());
 
-      h.indent(2) << "compiled.emplace_op<" << cInsnName(g.mnemonic()) << ">(compiled.function()";
-      std::set<std::string> argsReceived;
-      auto sig(insn.args().begin());
-      std::vector<std::optional<std::string>> args(insn.args().size());
-      auto out(args.begin());
+        for ( auto arg(g.args().begin());
+              arg != g.args().end();
+              ++arg, ++sig, ++out ) {
+          if ( sig == insn.args().end() )
+            throw NncGenerationError(g.errorContext(), "Arity mismatch in call to " + g.mnemonic());
 
-      for ( auto arg(g.args().begin());
-            arg != g.args().end();
-            ++arg, ++sig, ++out ) {
-        if ( sig == insn.args().end() )
-          throw NncGenerationError(g.errorContext(), "Arity mismatch in call to " + g.mnemonic());
-
-        std::stringstream argStr;
-        argStr << arg->render(varNms);
-        *out = argStr.str();
-        argsReceived.insert(sig->name());
-      }
-
-      // Now apply named arguments
-      for ( const auto &namedArg : g.namedArgs() ) {
-        // If we've already passed this arg error
-        if ( argsReceived.find(namedArg.first) != argsReceived.end() ) {
-          throw NncGenerationError(g.errorContext(), "Argument " + namedArg.first + " already passed to " + g.mnemonic());
+          std::stringstream argStr;
+          argStr << arg->render(varNms);
+          *out = argStr.str();
+          argsReceived.insert(sig->name());
         }
 
-        // Make sure this argument exists
-        auto argSig(std::find_if(sig, insn.args().end(), [&namedArg](const auto &argsig) { return argsig.name() == namedArg.first; }));
-        if ( argSig == insn.args().end() ) {
-          throw NncGenerationError(g.errorContext(), "Named argument " + namedArg.first + " does not exist in " + g.mnemonic());
+        // Now apply named arguments
+        for ( const auto &namedArg : g.namedArgs() ) {
+          // If we've already passed this arg error
+          if ( argsReceived.find(namedArg.first) != argsReceived.end() ) {
+            throw NncGenerationError(g.errorContext(), "Argument " + namedArg.first + " already passed to " + g.mnemonic());
+          }
+
+          // Make sure this argument exists
+          auto argSig(std::find_if(sig, insn.args().end(), [&namedArg](const auto &argsig) { return argsig.name() == namedArg.first; }));
+          if ( argSig == insn.args().end() ) {
+            throw NncGenerationError(g.errorContext(), "Named argument " + namedArg.first + " does not exist in " + g.mnemonic());
+          }
+
+          std::stringstream argStr;
+          argStr << namedArg.second.render(varNms);
+          *(out + std::distance(sig, argSig)) = argStr.str();
+          argsReceived.insert(namedArg.first);
         }
 
-        std::stringstream argStr;
-        argStr << namedArg.second.render(varNms);
-        *(out + std::distance(sig, argSig)) = argStr.str();
-        argsReceived.insert(namedArg.first);
-      }
-
-      // Make sure all required args were inserted
-      for ( const auto &arg: insn.args() ) {
-        if ( !arg.optional() && argsReceived.find(arg.name()) == argsReceived.end() )
-          throw NncGenerationError(g.errorContext(), "Insn call " + g.mnemonic() + " called without arg " + arg.name());
-      }
-
-      auto lastArg(std::find_if(std::make_reverse_iterator(args.end()), std::make_reverse_iterator(args.begin()),
-                                [](const auto &arg) { return arg.has_value(); }));
-      args.erase(lastArg.base(), args.end());
-
-      sig = insn.args().begin();
-      for ( decltype(args)::iterator arg(args.begin());
-            arg != args.end();
-            ++ arg, ++sig ) {
-        if ( arg->has_value() ) {
-          h.noindent() << ", " << **arg;
-        } else if ( sig->optional() ) {
-          h.noindent() << ", ";
-          if ( sig->type().isDefaultable() )
-            sig->type().outputArgDefault(h.noindent());
-          else
-            throw NncGenerationError(g.errorContext(), "Argument " + sig->name() + " is optional, but not defaultable");
-        } else {
-          throw NncGenerationError(g.errorContext(), "Insn call " + g.mnemonic() + " called without required arg " + sig->name());
+        // Make sure all required args were inserted
+        for ( const auto &arg: insn.args() ) {
+          if ( !arg.optional() && argsReceived.find(arg.name()) == argsReceived.end() )
+            throw NncGenerationError(g.errorContext(), "Insn call " + g.mnemonic() + " called without arg " + arg.name());
         }
-      }
 
-      h.noindent() << ");" << std::endl;
+        auto lastArg(std::find_if(std::make_reverse_iterator(args.end()), std::make_reverse_iterator(args.begin()),
+                                  [](const auto &arg) { return arg.has_value(); }));
+        args.erase(lastArg.base(), args.end());
+
+        sig = insn.args().begin();
+        for ( decltype(args)::iterator arg(args.begin());
+              arg != args.end();
+              ++ arg, ++sig ) {
+          if ( arg->has_value() ) {
+            h.noindent() << ", " << **arg;
+          } else if ( sig->optional() ) {
+            h.noindent() << ", ";
+            if ( sig->type().isDefaultable() )
+              sig->type().outputArgDefault(h.noindent());
+            else
+              throw NncGenerationError(g.errorContext(), "Argument " + sig->name() + " is optional, but not defaultable");
+          } else {
+            throw NncGenerationError(g.errorContext(), "Insn call " + g.mnemonic() + " called without required arg " + sig->name());
+          }
+        }
+
+        h.noindent() << ");" << std::endl;
+      }
     }
+
+    // Now alias any variables
+    for ( const auto &alias: rule->aliases() ) {
+      h.indent(2) << "compiled.alias(var_" << cName(alias.first) << ", var_" << cName(alias.second) << ");" << std::endl;
+    }
+
     h.indent(1) << "}" << std::endl << std::endl;
 
 
     h.indent() << "private:" << std::endl;
     h.indent(1) << "bool complete() const {" << std::endl;
 
-    IndentedHeader ch(h, 2);
-    CompleteGen g(ch);
-    rule->pats().visitPatterns(g);
-    g.finish();
+    {
+      IndentedHeader ch(h, 2);
+      CompleteGen g(ch);
+      rule->pats().visitPatterns(g);
+      g.finish();
+    }
 
 //    h.indent(2) << "return std::all_of(std::begin(ops), std::end(ops), [](::nnc::compile::RtlOp *p) { return !!p; });" << std::endl;
     h.indent(1) << "}" << std::endl << std::endl;
+
     h.indent(1) << "bool canContinue() const {" << std::endl;
-    h.indent(2) << "return !complete();" << std::endl;
+    {
+      IndentedHeader ch(h, 2);
+      CanContinueGen g(ch);
+      rule->pats().visitPatterns(g);
+      g.finish();
+    }
     h.indent(1) << "}" << std::endl << std::endl;
-    h.indent(1) << "bool check() {" << std::endl;
+
+    h.indent(1) << "bool check(::nnc::compile::RtlFunction &fn) {" << std::endl;
     for ( const auto &cond : rule->conds() ) {
       h.indent(2) << "if ( !(" << cond.render(varNms) << ")) {" << std::endl;
       h.indent(3) << "return false;" << std::endl;
@@ -1103,9 +1574,9 @@ void ArchDescBuilder::generateRuleImpl(const std::filesystem::path &outPath) {
     h.indent(2) << "return true;" << std::endl;
     h.indent(1) << "}" << std::endl << std::endl;
 
-    h.indent(1) << "::nnc::compile::RtlOp *ops[" << mnemonics.patternCount() << "];" << std::endl;
+    h.indent(1) << "std::array<::nnc::compile::RtlOp *, " << mnemonics.patternCount() << "> ops;" << std::endl;
     if ( mnemonics.hasBranches() )
-      h.indent(1) << "int branches[" << mnemonics.branchCount() << "];" << std::endl;
+      h.indent(1) << "std::array<int, " << mnemonics.branchCount() << "> branches;" << std::endl;
 
     for ( const auto &var : rule->vars() ) {
       declVar(var.first, var.second.type(), IndentedHeader(h, 1));
@@ -1120,7 +1591,7 @@ void ArchDescBuilder::generateRuleImpl(const std::filesystem::path &outPath) {
   h.pushNamespace("schedule");
 
   std::string scheduleClsNm("block_scheduler");
-  h.indent() << scheduleClsNm << "::" << scheduleClsNm << "(::nnc::compile::RtlFunction &dst, std::shared_ptr<::nnc::compile::RtlBasicBlock> b)" << std::endl;
+  h.indent() << scheduleClsNm << "::" << scheduleClsNm << "(::nnc::compile::GenericFunctionScheduler &dst, std::shared_ptr<::nnc::compile::RtlBasicBlock> b)" << std::endl;
   h.indent(1) << ": ::nnc::compile::GenericScheduler(dst, b) {" << std::endl;
   h.indent() << "}" << std::endl << std::endl;
 
@@ -1147,8 +1618,23 @@ void ArchDescBuilder::generateRuleImpl(const std::filesystem::path &outPath) {
     declMember("std::unique_ptr<::nnc::compile::GenericScheduler>", fnScheduleClsNm, "makeBlockScheduler")
     .arg("std::shared_ptr<::nnc::compile::RtlBasicBlock> block") << std::endl;
   h.indent() << "{" << std::endl;
-  h.indent(1) << scheduleClsNm << " *scheduler(new " << scheduleClsNm << "(function(), block));" << std::endl;
+  h.indent(1) << scheduleClsNm << " *scheduler(new " << scheduleClsNm << "(*this, block));" << std::endl;
   h.indent(1) << "return std::unique_ptr<::nnc::compile::GenericScheduler>(static_cast<::nnc::compile::GenericScheduler *>(scheduler));" << std::endl;
+  h.indent() << "}" << std::endl << std::endl;
+
+  h.indent() << declMember("std::unique_ptr<::nnc::compile::CallingConvention>", fnScheduleClsNm, "defaultCallingConvention")._const() << std::endl;
+  h.indent() << "{" << std::endl;
+  h.indent(1) << "return std::make_unique<" << m_defCallConv << ">();" << std::endl;
+  h.indent() << "}" << std::endl;
+
+  h.indent() << declMember("const ::nnc::compile::InsnEncoder &", fnScheduleClsNm, "defaultInsnEncoder")._const() << std::endl;
+  h.indent() << "{" << std::endl;
+  h.indent(1) << "return m_encoder;" << std::endl;
+  h.indent() << "}" << std::endl;
+
+  h.indent() << declMember("::nnc::compile::RegisterFile &", fnScheduleClsNm, "registers")._const() << std::endl;
+  h.indent() << "{" << std::endl;
+  h.indent(1) << "return ::nnc::arch::" << cArchName() << "::registers;" << std::endl;
   h.indent() << "}" << std::endl;
 
   codeSection(h.noindent(), "rules_postamble_namespaced");
@@ -1224,7 +1710,38 @@ std::string cName(const std::string &orig, bool full) {
                 ret == "compl" || ret == "not" ||
                 ret == "not_eq" || ret == "or" ||
                 ret == "or_eq" || ret == "xor" ||
-                ret == "xor_eq") ) {
+                ret == "xor_eq" || ret == "int" ||
+                ret == "unsigned" || ret == "signed" ||
+                ret == "long" || ret == "char" ||
+                ret == "short" || ret == "float" ||
+                ret == "double" || ret == "if" ||
+                ret == "else" || ret == "default" ||
+                ret == "auto" || ret == "throw" ||
+                ret == "catch" || ret == "return" ||
+                ret == "while" || ret == "for" ||
+                ret == "do" || ret == "bool" ||
+                ret == "void" || ret == "virtual" ||
+                ret == "class" || ret == "struct" ||
+                ret == "typedef" || ret == "switch" ||
+                ret == "case" || ret == "continue" ||
+                ret == "break" || ret == "true" ||
+                ret == "false" || ret == "operator" ||
+                ret == "goto" || ret == "const" ||
+                ret == "try" || ret == "union" ||
+                ret == "volatile" || ret == "nullptr" ||
+                ret == "public" || ret == "private" ||
+                ret == "protected" || ret == "delete" ||
+                ret == "new" || ret == "decltype" ||
+                ret == "sizeof" || ret == "typeid" ||
+                ret == "this" || ret == "template" ||
+                ret == "asm" || ret == "enum" ||
+                ret == "const_cast" || ret == "static_cast" ||
+                ret == "dynamic_cast" || ret == "constexpr" ||
+                ret == "explicit" || ret == "extern" ||
+                ret == "friend" || ret == "inline" ||
+                ret == "register" || ret == "reinterpret_cast" ||
+                ret == "static" || ret == "static_assert" ||
+                ret == "using" ) ) {
     ret.insert(0, "c_");
   }
   return ret;

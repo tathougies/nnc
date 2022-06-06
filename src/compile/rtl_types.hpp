@@ -75,8 +75,11 @@ namespace nnc {
       inline bool isIntType() const { return typeClass() == IntClass; }
       inline bool isFloatType() const { return typeClass() == FloatClass; }
       inline bool isPointerType() const { return typeClass() == PointerClass; }
+      inline std::shared_ptr<RtlType> underlying() const { return m_underlying; }
 
       inline std::size_t width() const { return m_width; }
+
+      inline RtlIntSignedness intFormat() const { return m_signedness; }
 
     private:
 
@@ -121,6 +124,53 @@ namespace nnc {
     private:
       RtlFloatWidth m_width;
     };
+
+    template<typename T>
+    class RtlTypeTraits {
+    public:
+      static bool isCompatible(const RtlTypeInfo &info) { return false; }
+    };
+
+    template<>
+    class RtlTypeTraits<float> {
+    public:
+      static bool isCompatible(const RtlTypeInfo &info) {
+        return info.isFloatType() && info.width() == 32;
+      }
+    };
+
+    template<>
+    class RtlTypeTraits<double> {
+    public:
+      static bool isCompatible(const RtlTypeInfo &info) { return info.isFloatType() && info.width() == 64; }
+    };
+
+#define INT_TYPE_TRAITS(Type, Format, Width)                            \
+    template<>                                                          \
+    class RtlTypeTraits<Type> {                                         \
+    public:                                                             \
+      static bool isCompatible(const RtlTypeInfo &info) {               \
+        return info.isIntType() && info.intFormat() == Format && info.width() == Width; \
+      }                                                                 \
+    }
+
+    INT_TYPE_TRAITS(std::int8_t, RtlTwosComplement, 8);
+    INT_TYPE_TRAITS(std::int16_t, RtlTwosComplement, 16);
+    INT_TYPE_TRAITS(std::int32_t, RtlTwosComplement, 32);
+    INT_TYPE_TRAITS(std::int64_t, RtlTwosComplement, 64);
+    INT_TYPE_TRAITS(std::uint8_t, RtlUnsigned, 8);
+    INT_TYPE_TRAITS(std::uint16_t, RtlUnsigned, 16);
+    INT_TYPE_TRAITS(std::uint32_t, RtlUnsigned, 32);
+    INT_TYPE_TRAITS(std::uint64_t, RtlUnsigned, 64);
+
+    template<typename T>
+    class RtlTypeTraits<T *> {
+    public:
+      static bool isCompatible(const RtlTypeInfo &info) {
+        return info.isPointerType() && RtlTypeTraits<T>::isCompatible(*info.underlying());
+      }
+    };
+
   }
 }
 

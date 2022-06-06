@@ -45,7 +45,7 @@
 #ifndef YY_YY_INSNSEL_PARSER_HPP_INCLUDED
 # define YY_YY_INSNSEL_PARSER_HPP_INCLUDED
 // "%code requires" blocks.
-#line 116 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+#line 127 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
 
     #include "ast.hpp"
     #include "archdesc.hpp"
@@ -403,124 +403,144 @@ namespace nnc {
       // clobberRegisterList
       char dummy5[sizeof (ClobberListDecl *)];
 
+      // registerBody
+      char dummy6[sizeof (CompositeRegisterModifier *)];
+
       // constructorDecl
       // constructorArgList
       // moreConstructorArgs
-      char dummy6[sizeof (ConstructorDecl *)];
+      char dummy7[sizeof (ConstructorDecl *)];
 
       // insnDecl
-      char dummy7[sizeof (Insn *)];
+      char dummy8[sizeof (Insn *)];
 
       // insnArgDeclDirection
-      char dummy8[sizeof (InsnArgDecl::Direction)];
+      char dummy9[sizeof (InsnArgDecl::Direction)];
 
       // insnArgPattern
-      char dummy9[sizeof (InsnArgPattern)];
+      char dummy10[sizeof (InsnArgPattern)];
 
       // insnArgDirectionality
-      char dummy10[sizeof (InsnArgPattern::Directionality)];
+      char dummy11[sizeof (InsnArgPattern::Directionality)];
 
       // insnArgs
       // moreInsnArgs
-      char dummy11[sizeof (InsnArgPatterns *)];
+      char dummy12[sizeof (InsnArgPatterns *)];
 
       // insnArgsDecl
       // insnArgsDeclList
       // moreInsnArgsDeclList
-      char dummy12[sizeof (InsnArgsModifier *)];
+      char dummy13[sizeof (InsnArgsModifier *)];
 
       // insnBody
       // insnBodyDecls
-      char dummy13[sizeof (InsnFactory *)];
+      char dummy14[sizeof (InsnFactory *)];
 
       // patternsDisjunction
       // morePatternsDisjunction
       // patternsConjunction
       // morePatternsConjunction
       // baseInsnPattern
-      char dummy14[sizeof (InsnGen *)];
+      char dummy15[sizeof (InsnGen *)];
 
       // insnBodyDecl
-      char dummy15[sizeof (InsnModifier *)];
+      char dummy16[sizeof (InsnModifier *)];
 
       // simpleInsnPattern
-      char dummy16[sizeof (InsnPattern *)];
+      char dummy17[sizeof (InsnPattern *)];
 
       // rtlType
-      char dummy17[sizeof (InsnRtlType)];
+      char dummy18[sizeof (InsnRtlType)];
 
       // insnRuleDecl
-      char dummy18[sizeof (InsnRule *)];
+      char dummy19[sizeof (InsnRule *)];
 
       // asmDecl
-      char dummy19[sizeof (InsnRuleAsmDecl *)];
+      char dummy20[sizeof (InsnRuleAsmDecl *)];
 
       // insnRuleBody
-      char dummy20[sizeof (InsnRuleFactory *)];
+      char dummy21[sizeof (InsnRuleFactory *)];
 
       // insnRuleBodyDecl
       // patternsDecl
-      char dummy21[sizeof (InsnRuleModifier *)];
+      char dummy22[sizeof (InsnRuleModifier *)];
 
       // insnVarDecl
-      char dummy22[sizeof (InsnVarDecl *)];
+      char dummy23[sizeof (InsnVarDecl *)];
 
       // insnVarDeclBody
       // insnVarDeclBodyDecls
-      char dummy23[sizeof (InsnVarDeclFactory *)];
+      char dummy24[sizeof (InsnVarDeclFactory *)];
 
       // insnVarDeclBodyDecl
-      char dummy24[sizeof (InsnVarDeclModifier *)];
+      char dummy25[sizeof (InsnVarDeclModifier *)];
 
       // constructorArgTy
       // insnVarTyDecl
-      char dummy25[sizeof (InsnVarType *)];
+      char dummy26[sizeof (InsnVarType *)];
 
       // insnRuleVarType
-      char dummy26[sizeof (InsnVariable::Type)];
+      char dummy27[sizeof (InsnVariable::Type)];
+
+      // intersectDecl
+      char dummy28[sizeof (IntersectDecl *)];
 
       // literal
-      char dummy27[sizeof (Literal *)];
+      char dummy29[sizeof (Literal *)];
 
       // paramDecl
-      char dummy28[sizeof (ParamDecl *)];
+      char dummy30[sizeof (ParamDecl *)];
+
+      // regclassRange
+      // regclassRangeMore
+      char dummy31[sizeof (RangedRegMemberDeclarer *)];
 
       // regclassBody
-      char dummy29[sizeof (RegClassFactory *)];
+      char dummy32[sizeof (RegClassFactory *)];
 
       // regclassBodyDecl
-      char dummy30[sizeof (RegClassModifier *)];
+      char dummy33[sizeof (RegClassModifier *)];
 
       // regclassTypeDecl
-      char dummy31[sizeof (RegClassTypeDecl *)];
+      char dummy34[sizeof (RegClassTypeDecl *)];
 
       // regclassRegDecl
-      char dummy32[sizeof (RegMemberDecl *)];
+      // regclassRegDeclMore
+      char dummy35[sizeof (RegMemberDecl *)];
+
+      // regclassRegDeclMember
+      char dummy36[sizeof (RegMemberDeclarer *)];
 
       // regtype
-      char dummy33[sizeof (RegType)];
-
-      // registerBody
-      char dummy34[sizeof (RegisterFactory *)];
+      char dummy37[sizeof (RegType)];
 
       // regBodyDecl
-      char dummy35[sizeof (RegisterModifier *)];
+      char dummy38[sizeof (RegisterModifier *)];
 
+      // optionalPatternSemicolon
       // optionalPattern
-      char dummy36[sizeof (bool)];
+      char dummy39[sizeof (bool)];
+
+      // postfixIfDecl
+      // asmConditional
+      char dummy40[sizeof (std::optional<template_string>)];
+
+      // regclassRangeElem
+      char dummy41[sizeof (std::pair<int, int> )];
 
       // STRING
       // ID
       // VARNAME
+      // optionalRegClass
       // insnArgTypePattern
       // insnArgExprPattern
-      char dummy37[sizeof (std::string)];
+      char dummy42[sizeof (std::string)];
 
       // NUMBER
-      char dummy38[sizeof (std::uint32_t)];
+      char dummy43[sizeof (std::uint32_t)];
 
       // asmInsnExpr
-      char dummy39[sizeof (template_string)];
+      char dummy44[sizeof (template_string)];
     };
 
     /// The size of the largest semantic type.
@@ -570,19 +590,19 @@ namespace nnc {
     TOK_EOF = 0,                   // EOF
     TOK_YYerror = 256,             // error
     TOK_YYUNDEF = 257,             // "invalid token"
-    TOK_ARCHITECTURE = 258,        // ARCHITECTURE
-    TOK_CHEADER = 259,             // CHEADER
-    TOK_INCLUDE = 260,             // INCLUDE
-    TOK_CODE = 261,                // CODE
-    TOK_REGCLASS = 262,            // REGCLASS
-    TOK_CTYPE = 263,               // CTYPE
-    TOK_REGTYPE = 264,             // REGTYPE
-    TOK_REGISTER = 265,            // REGISTER
-    TOK_CONSTANT = 266,            // CONSTANT
-    TOK_INSNRULE = 267,            // INSNRULE
-    TOK_INSN = 268,                // INSN
-    TOK_PATTERN = 269,             // PATTERN
-    TOK_CONSTRUCTOR = 270,         // CONSTRUCTOR
+    TOK_CHEADER = 258,             // CHEADER
+    TOK_INCLUDE = 259,             // INCLUDE
+    TOK_CODE = 260,                // CODE
+    TOK_REGCLASS = 261,            // REGCLASS
+    TOK_CTYPE = 262,               // CTYPE
+    TOK_REGTYPE = 263,             // REGTYPE
+    TOK_REGISTER = 264,            // REGISTER
+    TOK_CONSTANT = 265,            // CONSTANT
+    TOK_INSNRULE = 266,            // INSNRULE
+    TOK_INSN = 267,                // INSN
+    TOK_PATTERN = 268,             // PATTERN
+    TOK_CONSTRUCTOR = 269,         // CONSTRUCTOR
+    TOK_INTERSECT = 270,           // INTERSECT
     TOK_IF = 271,                  // IF
     TOK_CHECK = 272,               // CHECK
     TOK_ASM = 273,                 // ASM
@@ -596,19 +616,20 @@ namespace nnc {
     TOK_CPAREN = 281,              // CPAREN
     TOK_SEMICOLON = 282,           // SEMICOLON
     TOK_BAR = 283,                 // BAR
-    TOK_QUESTIONMARK = 284,        // QUESTIONMARK
-    TOK_COLON = 285,               // COLON
-    TOK_COMMA = 286,               // COMMA
-    TOK_EQUAL = 287,               // EQUAL
-    TOK_OUTPUT = 288,              // OUTPUT
-    TOK_INOUT = 289,               // INOUT
-    TOK_TYPE = 290,                // TYPE
-    TOK_CLOBBERS = 291,            // CLOBBERS
-    TOK_WHITESPACE = 292,          // WHITESPACE
-    TOK_STRING = 293,              // STRING
-    TOK_ID = 294,                  // ID
-    TOK_NUMBER = 295,              // NUMBER
-    TOK_VARNAME = 296              // VARNAME
+    TOK_DASH = 284,                // DASH
+    TOK_QUESTIONMARK = 285,        // QUESTIONMARK
+    TOK_COLON = 286,               // COLON
+    TOK_COMMA = 287,               // COMMA
+    TOK_EQUAL = 288,               // EQUAL
+    TOK_OUTPUT = 289,              // OUTPUT
+    TOK_INOUT = 290,               // INOUT
+    TOK_TYPE = 291,                // TYPE
+    TOK_CLOBBERS = 292,            // CLOBBERS
+    TOK_WHITESPACE = 293,          // WHITESPACE
+    TOK_STRING = 294,              // STRING
+    TOK_ID = 295,                  // ID
+    TOK_NUMBER = 296,              // NUMBER
+    TOK_VARNAME = 297              // VARNAME
       };
       /// Backward compatibility alias (Bison 3.6).
       typedef token_kind_type yytokentype;
@@ -625,24 +646,24 @@ namespace nnc {
     {
       enum symbol_kind_type
       {
-        YYNTOKENS = 42, ///< Number of tokens.
+        YYNTOKENS = 43, ///< Number of tokens.
         S_YYEMPTY = -2,
         S_YYEOF = 0,                             // EOF
         S_YYerror = 1,                           // error
         S_YYUNDEF = 2,                           // "invalid token"
-        S_ARCHITECTURE = 3,                      // ARCHITECTURE
-        S_CHEADER = 4,                           // CHEADER
-        S_INCLUDE = 5,                           // INCLUDE
-        S_CODE = 6,                              // CODE
-        S_REGCLASS = 7,                          // REGCLASS
-        S_CTYPE = 8,                             // CTYPE
-        S_REGTYPE = 9,                           // REGTYPE
-        S_REGISTER = 10,                         // REGISTER
-        S_CONSTANT = 11,                         // CONSTANT
-        S_INSNRULE = 12,                         // INSNRULE
-        S_INSN = 13,                             // INSN
-        S_PATTERN = 14,                          // PATTERN
-        S_CONSTRUCTOR = 15,                      // CONSTRUCTOR
+        S_CHEADER = 3,                           // CHEADER
+        S_INCLUDE = 4,                           // INCLUDE
+        S_CODE = 5,                              // CODE
+        S_REGCLASS = 6,                          // REGCLASS
+        S_CTYPE = 7,                             // CTYPE
+        S_REGTYPE = 8,                           // REGTYPE
+        S_REGISTER = 9,                          // REGISTER
+        S_CONSTANT = 10,                         // CONSTANT
+        S_INSNRULE = 11,                         // INSNRULE
+        S_INSN = 12,                             // INSN
+        S_PATTERN = 13,                          // PATTERN
+        S_CONSTRUCTOR = 14,                      // CONSTRUCTOR
+        S_INTERSECT = 15,                        // INTERSECT
         S_IF = 16,                               // IF
         S_CHECK = 17,                            // CHECK
         S_ASM = 18,                              // ASM
@@ -656,29 +677,29 @@ namespace nnc {
         S_CPAREN = 26,                           // CPAREN
         S_SEMICOLON = 27,                        // SEMICOLON
         S_BAR = 28,                              // BAR
-        S_QUESTIONMARK = 29,                     // QUESTIONMARK
-        S_COLON = 30,                            // COLON
-        S_COMMA = 31,                            // COMMA
-        S_EQUAL = 32,                            // EQUAL
-        S_OUTPUT = 33,                           // OUTPUT
-        S_INOUT = 34,                            // INOUT
-        S_TYPE = 35,                             // TYPE
-        S_CLOBBERS = 36,                         // CLOBBERS
-        S_WHITESPACE = 37,                       // WHITESPACE
-        S_STRING = 38,                           // STRING
-        S_ID = 39,                               // ID
-        S_NUMBER = 40,                           // NUMBER
-        S_VARNAME = 41,                          // VARNAME
-        S_YYACCEPT = 42,                         // $accept
-        S_file = 43,                             // file
-        S_decl = 44,                             // decl
-        S_ctypeDecl = 45,                        // ctypeDecl
-        S_ctypeBody = 46,                        // ctypeBody
-        S_ctypeBodyDecl = 47,                    // ctypeBodyDecl
-        S_codeDecl = 48,                         // codeDecl
-        S_cbraceSemi = 49,                       // cbraceSemi
-        S_cheaderDecl = 50,                      // cheaderDecl
-        S_architectureDecl = 51,                 // architectureDecl
+        S_DASH = 29,                             // DASH
+        S_QUESTIONMARK = 30,                     // QUESTIONMARK
+        S_COLON = 31,                            // COLON
+        S_COMMA = 32,                            // COMMA
+        S_EQUAL = 33,                            // EQUAL
+        S_OUTPUT = 34,                           // OUTPUT
+        S_INOUT = 35,                            // INOUT
+        S_TYPE = 36,                             // TYPE
+        S_CLOBBERS = 37,                         // CLOBBERS
+        S_WHITESPACE = 38,                       // WHITESPACE
+        S_STRING = 39,                           // STRING
+        S_ID = 40,                               // ID
+        S_NUMBER = 41,                           // NUMBER
+        S_VARNAME = 42,                          // VARNAME
+        S_YYACCEPT = 43,                         // $accept
+        S_file = 44,                             // file
+        S_decl = 45,                             // decl
+        S_ctypeDecl = 46,                        // ctypeDecl
+        S_ctypeBody = 47,                        // ctypeBody
+        S_ctypeBodyDecl = 48,                    // ctypeBodyDecl
+        S_codeDecl = 49,                         // codeDecl
+        S_cbraceSemi = 50,                       // cbraceSemi
+        S_cheaderDecl = 51,                      // cheaderDecl
         S_includeDecl = 52,                      // includeDecl
         S_regclassDecl = 53,                     // regclassDecl
         S_registerDecl = 54,                     // registerDecl
@@ -688,52 +709,62 @@ namespace nnc {
         S_regclassBody = 58,                     // regclassBody
         S_regclassBodyDecl = 59,                 // regclassBodyDecl
         S_regclassRegDecl = 60,                  // regclassRegDecl
-        S_regclassTypeDecl = 61,                 // regclassTypeDecl
-        S_regtype = 62,                          // regtype
-        S_insnDecl = 63,                         // insnDecl
-        S_insnArgsDecl = 64,                     // insnArgsDecl
-        S_insnArgDeclDirection = 65,             // insnArgDeclDirection
-        S_insnArgsDeclList = 66,                 // insnArgsDeclList
-        S_moreInsnArgsDeclList = 67,             // moreInsnArgsDeclList
-        S_insnBody = 68,                         // insnBody
-        S_insnBodyDecls = 69,                    // insnBodyDecls
-        S_insnBodyDecl = 70,                     // insnBodyDecl
-        S_constructorDecl = 71,                  // constructorDecl
-        S_constructorArgList = 72,               // constructorArgList
-        S_moreConstructorArgs = 73,              // moreConstructorArgs
-        S_constructorArgTy = 74,                 // constructorArgTy
-        S_insnVarDecl = 75,                      // insnVarDecl
-        S_insnVarTyDecl = 76,                    // insnVarTyDecl
-        S_rtlType = 77,                          // rtlType
-        S_insnVarDeclBody = 78,                  // insnVarDeclBody
-        S_insnVarDeclBodyDecls = 79,             // insnVarDeclBodyDecls
-        S_insnVarDeclBodyDecl = 80,              // insnVarDeclBodyDecl
-        S_insnRuleDecl = 81,                     // insnRuleDecl
-        S_insnRuleBody = 82,                     // insnRuleBody
-        S_insnRuleVarType = 83,                  // insnRuleVarType
-        S_insnRuleBodyDecl = 84,                 // insnRuleBodyDecl
-        S_patternsDecl = 85,                     // patternsDecl
-        S_patternsDisjunction = 86,              // patternsDisjunction
-        S_morePatternsDisjunction = 87,          // morePatternsDisjunction
-        S_patternsConjunction = 88,              // patternsConjunction
-        S_optionalPattern = 89,                  // optionalPattern
-        S_morePatternsConjunction = 90,          // morePatternsConjunction
-        S_baseInsnPattern = 91,                  // baseInsnPattern
-        S_simpleInsnPattern = 92,                // simpleInsnPattern
-        S_insnArgs = 93,                         // insnArgs
-        S_insnArgDirectionality = 94,            // insnArgDirectionality
-        S_moreInsnArgs = 95,                     // moreInsnArgs
-        S_insnArgPattern = 96,                   // insnArgPattern
-        S_insnArgTypePattern = 97,               // insnArgTypePattern
-        S_insnArgExprPattern = 98,               // insnArgExprPattern
-        S_asmDecl = 99,                          // asmDecl
-        S_asmInsn = 100,                         // asmInsn
-        S_asmInsnArgs = 101,                     // asmInsnArgs
-        S_moreAsmInsnArgs = 102,                 // moreAsmInsnArgs
-        S_asmInsnArg = 103,                      // asmInsnArg
-        S_asmInsnExpr = 104,                     // asmInsnExpr
-        S_paramDecl = 105,                       // paramDecl
-        S_literal = 106                          // literal
+        S_regclassRegDeclMember = 61,            // regclassRegDeclMember
+        S_regclassRange = 62,                    // regclassRange
+        S_regclassRangeMore = 63,                // regclassRangeMore
+        S_regclassRangeElem = 64,                // regclassRangeElem
+        S_regclassRegDeclMore = 65,              // regclassRegDeclMore
+        S_regclassTypeDecl = 66,                 // regclassTypeDecl
+        S_regtype = 67,                          // regtype
+        S_insnDecl = 68,                         // insnDecl
+        S_insnArgsDecl = 69,                     // insnArgsDecl
+        S_insnArgDeclDirection = 70,             // insnArgDeclDirection
+        S_insnArgsDeclList = 71,                 // insnArgsDeclList
+        S_moreInsnArgsDeclList = 72,             // moreInsnArgsDeclList
+        S_insnBody = 73,                         // insnBody
+        S_insnBodyDecls = 74,                    // insnBodyDecls
+        S_insnBodyDecl = 75,                     // insnBodyDecl
+        S_intersectDecl = 76,                    // intersectDecl
+        S_postfixIfDecl = 77,                    // postfixIfDecl
+        S_constructorDecl = 78,                  // constructorDecl
+        S_constructorArgList = 79,               // constructorArgList
+        S_moreConstructorArgs = 80,              // moreConstructorArgs
+        S_constructorArgTy = 81,                 // constructorArgTy
+        S_insnVarDecl = 82,                      // insnVarDecl
+        S_optionalRegClass = 83,                 // optionalRegClass
+        S_insnVarTyDecl = 84,                    // insnVarTyDecl
+        S_rtlType = 85,                          // rtlType
+        S_insnVarDeclBody = 86,                  // insnVarDeclBody
+        S_insnVarDeclBodyDecls = 87,             // insnVarDeclBodyDecls
+        S_insnVarDeclBodyDecl = 88,              // insnVarDeclBodyDecl
+        S_insnRuleDecl = 89,                     // insnRuleDecl
+        S_insnRuleBody = 90,                     // insnRuleBody
+        S_insnRuleVarType = 91,                  // insnRuleVarType
+        S_insnRuleBodyDecl = 92,                 // insnRuleBodyDecl
+        S_patternsDecl = 93,                     // patternsDecl
+        S_patternsDisjunction = 94,              // patternsDisjunction
+        S_morePatternsDisjunction = 95,          // morePatternsDisjunction
+        S_patternsConjunction = 96,              // patternsConjunction
+        S_optionalPatternSemicolon = 97,         // optionalPatternSemicolon
+        S_optionalPattern = 98,                  // optionalPattern
+        S_morePatternsConjunction = 99,          // morePatternsConjunction
+        S_baseInsnPattern = 100,                 // baseInsnPattern
+        S_simpleInsnPattern = 101,               // simpleInsnPattern
+        S_insnArgs = 102,                        // insnArgs
+        S_insnArgDirectionality = 103,           // insnArgDirectionality
+        S_moreInsnArgs = 104,                    // moreInsnArgs
+        S_insnArgPattern = 105,                  // insnArgPattern
+        S_insnArgTypePattern = 106,              // insnArgTypePattern
+        S_insnArgExprPattern = 107,              // insnArgExprPattern
+        S_asmDecl = 108,                         // asmDecl
+        S_asmConditional = 109,                  // asmConditional
+        S_asmInsn = 110,                         // asmInsn
+        S_asmInsnArgs = 111,                     // asmInsnArgs
+        S_moreAsmInsnArgs = 112,                 // moreAsmInsnArgs
+        S_asmInsnArg = 113,                      // asmInsnArg
+        S_asmInsnExpr = 114,                     // asmInsnExpr
+        S_paramDecl = 115,                       // paramDecl
+        S_literal = 116                          // literal
       };
     };
 
@@ -790,6 +821,10 @@ namespace nnc {
 
       case symbol_kind::S_clobberRegisterList: // clobberRegisterList
         value.move< ClobberListDecl * > (std::move (that.value));
+        break;
+
+      case symbol_kind::S_registerBody: // registerBody
+        value.move< CompositeRegisterModifier * > (std::move (that.value));
         break;
 
       case symbol_kind::S_constructorDecl: // constructorDecl
@@ -889,12 +924,21 @@ namespace nnc {
         value.move< InsnVariable::Type > (std::move (that.value));
         break;
 
+      case symbol_kind::S_intersectDecl: // intersectDecl
+        value.move< IntersectDecl * > (std::move (that.value));
+        break;
+
       case symbol_kind::S_literal: // literal
         value.move< Literal * > (std::move (that.value));
         break;
 
       case symbol_kind::S_paramDecl: // paramDecl
         value.move< ParamDecl * > (std::move (that.value));
+        break;
+
+      case symbol_kind::S_regclassRange: // regclassRange
+      case symbol_kind::S_regclassRangeMore: // regclassRangeMore
+        value.move< RangedRegMemberDeclarer * > (std::move (that.value));
         break;
 
       case symbol_kind::S_regclassBody: // regclassBody
@@ -910,28 +954,40 @@ namespace nnc {
         break;
 
       case symbol_kind::S_regclassRegDecl: // regclassRegDecl
+      case symbol_kind::S_regclassRegDeclMore: // regclassRegDeclMore
         value.move< RegMemberDecl * > (std::move (that.value));
+        break;
+
+      case symbol_kind::S_regclassRegDeclMember: // regclassRegDeclMember
+        value.move< RegMemberDeclarer * > (std::move (that.value));
         break;
 
       case symbol_kind::S_regtype: // regtype
         value.move< RegType > (std::move (that.value));
         break;
 
-      case symbol_kind::S_registerBody: // registerBody
-        value.move< RegisterFactory * > (std::move (that.value));
-        break;
-
       case symbol_kind::S_regBodyDecl: // regBodyDecl
         value.move< RegisterModifier * > (std::move (that.value));
         break;
 
+      case symbol_kind::S_optionalPatternSemicolon: // optionalPatternSemicolon
       case symbol_kind::S_optionalPattern: // optionalPattern
         value.move< bool > (std::move (that.value));
+        break;
+
+      case symbol_kind::S_postfixIfDecl: // postfixIfDecl
+      case symbol_kind::S_asmConditional: // asmConditional
+        value.move< std::optional<template_string> > (std::move (that.value));
+        break;
+
+      case symbol_kind::S_regclassRangeElem: // regclassRangeElem
+        value.move< std::pair<int, int>  > (std::move (that.value));
         break;
 
       case symbol_kind::S_STRING: // STRING
       case symbol_kind::S_ID: // ID
       case symbol_kind::S_VARNAME: // VARNAME
+      case symbol_kind::S_optionalRegClass: // optionalRegClass
       case symbol_kind::S_insnArgTypePattern: // insnArgTypePattern
       case symbol_kind::S_insnArgExprPattern: // insnArgExprPattern
         value.move< std::string > (std::move (that.value));
@@ -1032,6 +1088,20 @@ namespace nnc {
       {}
 #else
       basic_symbol (typename Base::kind_type t, const ClobberListDecl *& v, const location_type& l)
+        : Base (t)
+        , value (v)
+        , location (l)
+      {}
+#endif
+
+#if 201103L <= YY_CPLUSPLUS
+      basic_symbol (typename Base::kind_type t, CompositeRegisterModifier *&& v, location_type&& l)
+        : Base (t)
+        , value (std::move (v))
+        , location (std::move (l))
+      {}
+#else
+      basic_symbol (typename Base::kind_type t, const CompositeRegisterModifier *& v, const location_type& l)
         : Base (t)
         , value (v)
         , location (l)
@@ -1333,6 +1403,20 @@ namespace nnc {
 #endif
 
 #if 201103L <= YY_CPLUSPLUS
+      basic_symbol (typename Base::kind_type t, IntersectDecl *&& v, location_type&& l)
+        : Base (t)
+        , value (std::move (v))
+        , location (std::move (l))
+      {}
+#else
+      basic_symbol (typename Base::kind_type t, const IntersectDecl *& v, const location_type& l)
+        : Base (t)
+        , value (v)
+        , location (l)
+      {}
+#endif
+
+#if 201103L <= YY_CPLUSPLUS
       basic_symbol (typename Base::kind_type t, Literal *&& v, location_type&& l)
         : Base (t)
         , value (std::move (v))
@@ -1354,6 +1438,20 @@ namespace nnc {
       {}
 #else
       basic_symbol (typename Base::kind_type t, const ParamDecl *& v, const location_type& l)
+        : Base (t)
+        , value (v)
+        , location (l)
+      {}
+#endif
+
+#if 201103L <= YY_CPLUSPLUS
+      basic_symbol (typename Base::kind_type t, RangedRegMemberDeclarer *&& v, location_type&& l)
+        : Base (t)
+        , value (std::move (v))
+        , location (std::move (l))
+      {}
+#else
+      basic_symbol (typename Base::kind_type t, const RangedRegMemberDeclarer *& v, const location_type& l)
         : Base (t)
         , value (v)
         , location (l)
@@ -1417,13 +1515,13 @@ namespace nnc {
 #endif
 
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, RegType&& v, location_type&& l)
+      basic_symbol (typename Base::kind_type t, RegMemberDeclarer *&& v, location_type&& l)
         : Base (t)
         , value (std::move (v))
         , location (std::move (l))
       {}
 #else
-      basic_symbol (typename Base::kind_type t, const RegType& v, const location_type& l)
+      basic_symbol (typename Base::kind_type t, const RegMemberDeclarer *& v, const location_type& l)
         : Base (t)
         , value (v)
         , location (l)
@@ -1431,13 +1529,13 @@ namespace nnc {
 #endif
 
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, RegisterFactory *&& v, location_type&& l)
+      basic_symbol (typename Base::kind_type t, RegType&& v, location_type&& l)
         : Base (t)
         , value (std::move (v))
         , location (std::move (l))
       {}
 #else
-      basic_symbol (typename Base::kind_type t, const RegisterFactory *& v, const location_type& l)
+      basic_symbol (typename Base::kind_type t, const RegType& v, const location_type& l)
         : Base (t)
         , value (v)
         , location (l)
@@ -1466,6 +1564,34 @@ namespace nnc {
       {}
 #else
       basic_symbol (typename Base::kind_type t, const bool& v, const location_type& l)
+        : Base (t)
+        , value (v)
+        , location (l)
+      {}
+#endif
+
+#if 201103L <= YY_CPLUSPLUS
+      basic_symbol (typename Base::kind_type t, std::optional<template_string>&& v, location_type&& l)
+        : Base (t)
+        , value (std::move (v))
+        , location (std::move (l))
+      {}
+#else
+      basic_symbol (typename Base::kind_type t, const std::optional<template_string>& v, const location_type& l)
+        : Base (t)
+        , value (v)
+        , location (l)
+      {}
+#endif
+
+#if 201103L <= YY_CPLUSPLUS
+      basic_symbol (typename Base::kind_type t, std::pair<int, int> && v, location_type&& l)
+        : Base (t)
+        , value (std::move (v))
+        , location (std::move (l))
+      {}
+#else
+      basic_symbol (typename Base::kind_type t, const std::pair<int, int> & v, const location_type& l)
         : Base (t)
         , value (v)
         , location (l)
@@ -1558,6 +1684,10 @@ switch (yykind)
 
       case symbol_kind::S_clobberRegisterList: // clobberRegisterList
         value.template destroy< ClobberListDecl * > ();
+        break;
+
+      case symbol_kind::S_registerBody: // registerBody
+        value.template destroy< CompositeRegisterModifier * > ();
         break;
 
       case symbol_kind::S_constructorDecl: // constructorDecl
@@ -1657,12 +1787,21 @@ switch (yykind)
         value.template destroy< InsnVariable::Type > ();
         break;
 
+      case symbol_kind::S_intersectDecl: // intersectDecl
+        value.template destroy< IntersectDecl * > ();
+        break;
+
       case symbol_kind::S_literal: // literal
         value.template destroy< Literal * > ();
         break;
 
       case symbol_kind::S_paramDecl: // paramDecl
         value.template destroy< ParamDecl * > ();
+        break;
+
+      case symbol_kind::S_regclassRange: // regclassRange
+      case symbol_kind::S_regclassRangeMore: // regclassRangeMore
+        value.template destroy< RangedRegMemberDeclarer * > ();
         break;
 
       case symbol_kind::S_regclassBody: // regclassBody
@@ -1678,28 +1817,40 @@ switch (yykind)
         break;
 
       case symbol_kind::S_regclassRegDecl: // regclassRegDecl
+      case symbol_kind::S_regclassRegDeclMore: // regclassRegDeclMore
         value.template destroy< RegMemberDecl * > ();
+        break;
+
+      case symbol_kind::S_regclassRegDeclMember: // regclassRegDeclMember
+        value.template destroy< RegMemberDeclarer * > ();
         break;
 
       case symbol_kind::S_regtype: // regtype
         value.template destroy< RegType > ();
         break;
 
-      case symbol_kind::S_registerBody: // registerBody
-        value.template destroy< RegisterFactory * > ();
-        break;
-
       case symbol_kind::S_regBodyDecl: // regBodyDecl
         value.template destroy< RegisterModifier * > ();
         break;
 
+      case symbol_kind::S_optionalPatternSemicolon: // optionalPatternSemicolon
       case symbol_kind::S_optionalPattern: // optionalPattern
         value.template destroy< bool > ();
+        break;
+
+      case symbol_kind::S_postfixIfDecl: // postfixIfDecl
+      case symbol_kind::S_asmConditional: // asmConditional
+        value.template destroy< std::optional<template_string> > ();
+        break;
+
+      case symbol_kind::S_regclassRangeElem: // regclassRangeElem
+        value.template destroy< std::pair<int, int>  > ();
         break;
 
       case symbol_kind::S_STRING: // STRING
       case symbol_kind::S_ID: // ID
       case symbol_kind::S_VARNAME: // VARNAME
+      case symbol_kind::S_optionalRegClass: // optionalRegClass
       case symbol_kind::S_insnArgTypePattern: // insnArgTypePattern
       case symbol_kind::S_insnArgExprPattern: // insnArgExprPattern
         value.template destroy< std::string > ();
@@ -1927,21 +2078,6 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_ARCHITECTURE (location_type l)
-      {
-        return symbol_type (token::TOK_ARCHITECTURE, std::move (l));
-      }
-#else
-      static
-      symbol_type
-      make_ARCHITECTURE (const location_type& l)
-      {
-        return symbol_type (token::TOK_ARCHITECTURE, l);
-      }
-#endif
-#if 201103L <= YY_CPLUSPLUS
-      static
-      symbol_type
       make_CHEADER (location_type l)
       {
         return symbol_type (token::TOK_CHEADER, std::move (l));
@@ -2117,6 +2253,21 @@ switch (yykind)
       make_CONSTRUCTOR (const location_type& l)
       {
         return symbol_type (token::TOK_CONSTRUCTOR, l);
+      }
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      static
+      symbol_type
+      make_INTERSECT (location_type l)
+      {
+        return symbol_type (token::TOK_INTERSECT, std::move (l));
+      }
+#else
+      static
+      symbol_type
+      make_INTERSECT (const location_type& l)
+      {
+        return symbol_type (token::TOK_INTERSECT, l);
       }
 #endif
 #if 201103L <= YY_CPLUSPLUS
@@ -2312,6 +2463,21 @@ switch (yykind)
       make_BAR (const location_type& l)
       {
         return symbol_type (token::TOK_BAR, l);
+      }
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      static
+      symbol_type
+      make_DASH (location_type l)
+      {
+        return symbol_type (token::TOK_DASH, std::move (l));
+      }
+#else
+      static
+      symbol_type
+      make_DASH (const location_type& l)
+      {
+        return symbol_type (token::TOK_DASH, l);
       }
 #endif
 #if 201103L <= YY_CPLUSPLUS
@@ -2531,7 +2697,7 @@ switch (yykind)
     void yy_lac_discard_ (const char* event);
 
     /// Stored state numbers (used for stacks).
-    typedef unsigned char state_type;
+    typedef short state_type;
 
     /// Compute post-reduction state.
     /// \param yystate   the current state
@@ -2574,12 +2740,12 @@ switch (yykind)
     static const short yypgoto_[];
 
     // YYDEFGOTO[NTERM-NUM].
-    static const unsigned char yydefgoto_[];
+    static const short yydefgoto_[];
 
     // YYTABLE[YYPACT[STATE-NUM]] -- What to do in state STATE-NUM.  If
     // positive, shift that token.  If negative, reduce the rule whose
     // number is the opposite.  If YYTABLE_NINF, syntax error.
-    static const unsigned char yytable_[];
+    static const short yytable_[];
 
     static const short yycheck_[];
 
@@ -2832,8 +2998,8 @@ switch (yykind)
     /// Constants.
     enum
     {
-      yylast_ = 207,     ///< Last index in yytable_.
-      yynnts_ = 65,  ///< Number of nonterminal symbols.
+      yylast_ = 274,     ///< Last index in yytable_.
+      yynnts_ = 74,  ///< Number of nonterminal symbols.
       yyfinal_ = 31 ///< Termination state number.
     };
 
@@ -2883,10 +3049,10 @@ switch (yykind)
        5,     6,     7,     8,     9,    10,    11,    12,    13,    14,
       15,    16,    17,    18,    19,    20,    21,    22,    23,    24,
       25,    26,    27,    28,    29,    30,    31,    32,    33,    34,
-      35,    36,    37,    38,    39,    40,    41
+      35,    36,    37,    38,    39,    40,    41,    42
     };
     // Last valid token kind.
-    const int code_max = 296;
+    const int code_max = 297;
 
     if (t <= 0)
       return symbol_kind::S_YYEOF;
@@ -2925,6 +3091,10 @@ switch (yykind)
 
       case symbol_kind::S_clobberRegisterList: // clobberRegisterList
         value.copy< ClobberListDecl * > (YY_MOVE (that.value));
+        break;
+
+      case symbol_kind::S_registerBody: // registerBody
+        value.copy< CompositeRegisterModifier * > (YY_MOVE (that.value));
         break;
 
       case symbol_kind::S_constructorDecl: // constructorDecl
@@ -3024,12 +3194,21 @@ switch (yykind)
         value.copy< InsnVariable::Type > (YY_MOVE (that.value));
         break;
 
+      case symbol_kind::S_intersectDecl: // intersectDecl
+        value.copy< IntersectDecl * > (YY_MOVE (that.value));
+        break;
+
       case symbol_kind::S_literal: // literal
         value.copy< Literal * > (YY_MOVE (that.value));
         break;
 
       case symbol_kind::S_paramDecl: // paramDecl
         value.copy< ParamDecl * > (YY_MOVE (that.value));
+        break;
+
+      case symbol_kind::S_regclassRange: // regclassRange
+      case symbol_kind::S_regclassRangeMore: // regclassRangeMore
+        value.copy< RangedRegMemberDeclarer * > (YY_MOVE (that.value));
         break;
 
       case symbol_kind::S_regclassBody: // regclassBody
@@ -3045,28 +3224,40 @@ switch (yykind)
         break;
 
       case symbol_kind::S_regclassRegDecl: // regclassRegDecl
+      case symbol_kind::S_regclassRegDeclMore: // regclassRegDeclMore
         value.copy< RegMemberDecl * > (YY_MOVE (that.value));
+        break;
+
+      case symbol_kind::S_regclassRegDeclMember: // regclassRegDeclMember
+        value.copy< RegMemberDeclarer * > (YY_MOVE (that.value));
         break;
 
       case symbol_kind::S_regtype: // regtype
         value.copy< RegType > (YY_MOVE (that.value));
         break;
 
-      case symbol_kind::S_registerBody: // registerBody
-        value.copy< RegisterFactory * > (YY_MOVE (that.value));
-        break;
-
       case symbol_kind::S_regBodyDecl: // regBodyDecl
         value.copy< RegisterModifier * > (YY_MOVE (that.value));
         break;
 
+      case symbol_kind::S_optionalPatternSemicolon: // optionalPatternSemicolon
       case symbol_kind::S_optionalPattern: // optionalPattern
         value.copy< bool > (YY_MOVE (that.value));
+        break;
+
+      case symbol_kind::S_postfixIfDecl: // postfixIfDecl
+      case symbol_kind::S_asmConditional: // asmConditional
+        value.copy< std::optional<template_string> > (YY_MOVE (that.value));
+        break;
+
+      case symbol_kind::S_regclassRangeElem: // regclassRangeElem
+        value.copy< std::pair<int, int>  > (YY_MOVE (that.value));
         break;
 
       case symbol_kind::S_STRING: // STRING
       case symbol_kind::S_ID: // ID
       case symbol_kind::S_VARNAME: // VARNAME
+      case symbol_kind::S_optionalRegClass: // optionalRegClass
       case symbol_kind::S_insnArgTypePattern: // insnArgTypePattern
       case symbol_kind::S_insnArgExprPattern: // insnArgExprPattern
         value.copy< std::string > (YY_MOVE (that.value));
@@ -3131,6 +3322,10 @@ switch (yykind)
 
       case symbol_kind::S_clobberRegisterList: // clobberRegisterList
         value.move< ClobberListDecl * > (YY_MOVE (s.value));
+        break;
+
+      case symbol_kind::S_registerBody: // registerBody
+        value.move< CompositeRegisterModifier * > (YY_MOVE (s.value));
         break;
 
       case symbol_kind::S_constructorDecl: // constructorDecl
@@ -3230,12 +3425,21 @@ switch (yykind)
         value.move< InsnVariable::Type > (YY_MOVE (s.value));
         break;
 
+      case symbol_kind::S_intersectDecl: // intersectDecl
+        value.move< IntersectDecl * > (YY_MOVE (s.value));
+        break;
+
       case symbol_kind::S_literal: // literal
         value.move< Literal * > (YY_MOVE (s.value));
         break;
 
       case symbol_kind::S_paramDecl: // paramDecl
         value.move< ParamDecl * > (YY_MOVE (s.value));
+        break;
+
+      case symbol_kind::S_regclassRange: // regclassRange
+      case symbol_kind::S_regclassRangeMore: // regclassRangeMore
+        value.move< RangedRegMemberDeclarer * > (YY_MOVE (s.value));
         break;
 
       case symbol_kind::S_regclassBody: // regclassBody
@@ -3251,28 +3455,40 @@ switch (yykind)
         break;
 
       case symbol_kind::S_regclassRegDecl: // regclassRegDecl
+      case symbol_kind::S_regclassRegDeclMore: // regclassRegDeclMore
         value.move< RegMemberDecl * > (YY_MOVE (s.value));
+        break;
+
+      case symbol_kind::S_regclassRegDeclMember: // regclassRegDeclMember
+        value.move< RegMemberDeclarer * > (YY_MOVE (s.value));
         break;
 
       case symbol_kind::S_regtype: // regtype
         value.move< RegType > (YY_MOVE (s.value));
         break;
 
-      case symbol_kind::S_registerBody: // registerBody
-        value.move< RegisterFactory * > (YY_MOVE (s.value));
-        break;
-
       case symbol_kind::S_regBodyDecl: // regBodyDecl
         value.move< RegisterModifier * > (YY_MOVE (s.value));
         break;
 
+      case symbol_kind::S_optionalPatternSemicolon: // optionalPatternSemicolon
       case symbol_kind::S_optionalPattern: // optionalPattern
         value.move< bool > (YY_MOVE (s.value));
+        break;
+
+      case symbol_kind::S_postfixIfDecl: // postfixIfDecl
+      case symbol_kind::S_asmConditional: // asmConditional
+        value.move< std::optional<template_string> > (YY_MOVE (s.value));
+        break;
+
+      case symbol_kind::S_regclassRangeElem: // regclassRangeElem
+        value.move< std::pair<int, int>  > (YY_MOVE (s.value));
         break;
 
       case symbol_kind::S_STRING: // STRING
       case symbol_kind::S_ID: // ID
       case symbol_kind::S_VARNAME: // VARNAME
+      case symbol_kind::S_optionalRegClass: // optionalRegClass
       case symbol_kind::S_insnArgTypePattern: // insnArgTypePattern
       case symbol_kind::S_insnArgExprPattern: // insnArgExprPattern
         value.move< std::string > (YY_MOVE (s.value));
@@ -3353,11 +3569,11 @@ switch (yykind)
 
 #line 10 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
 } // nnc
-#line 3357 "./insnsel/parser.hpp"
+#line 3573 "./insnsel/parser.hpp"
 
 
 // "%code provides" blocks.
-#line 125 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+#line 136 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
 
     class LexedToken {
     public:
@@ -3393,7 +3609,7 @@ switch (yykind)
     std::unique_ptr<ArchDescLexer> makeLexer(const std::string &filename, std::istream &in);
 
 
-#line 3397 "./insnsel/parser.hpp"
+#line 3613 "./insnsel/parser.hpp"
 
 
 #endif // !YY_YY_INSNSEL_PARSER_HPP_INCLUDED

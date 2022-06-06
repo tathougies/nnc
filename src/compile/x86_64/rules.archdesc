@@ -13,114 +13,162 @@ code "rules_preamble_namespaced" [[
   }
 ]];
 
-// insnrule load_zero {
-//   var $ty : regtype;
-//   var $x : constant;
-//   var $out : register;
-// 
-// //  regclass $out gp;
-//   if [[ isZero($x) ]];
-// 
-//   pattern {
-//     const(const=($ty) $x, dest->($ty) $out);
-//   }
-// 
-//   asm {
-//     xor($out, $out);
-//   }
-// }
-// 
-// insnrule load_const {
-//   var $x : constant;
-//   var $out : register;
-// 
-//   pattern {
-//     const(const=$x, dest->$out);
-//   }
-//   asm {
-//     mov($out, $x);
-//   }
-// }
-// 
-// insnrule mul_2 {
-//   var $ty : regtype;
-//   var $x : register;
-//   var $two : constant;
-//   var $out : register;
-// 
-//   extraPrivate = [[
-//     int shiftValue;
-//   ]];
-// 
-//   check [[
-//       if ( isIntType(*$ty) ) {
-//         shiftValue = log2(::nnc::compile::interpretAsInt($two));
-//         return ( shiftValue >= 0 );
-//       } else return false;
-//   ]];
-// 
-//   pattern {
-//     mul(left=$x, right=($ty) $two, dest->$out);
-//   }
-// 
-//   asm {
-// //    lea([[IntelAddress($x).scale(twoPow($two))]], $out);
-//   }
-// };
-// 
-// insnrule lt_zero {
-//   var $ty: regtype;
-//   var $a: register;
-//   var $c : register;
-//   var $x : constant;
-//   var $out : register;
-// 
-//   pattern {
-//     const(const=$x, dest->$c);
-//     lt(left=$a, right=$c, dest->$out);
-//   }
-// 
-//   if "isZero($x)";
-// 
-//   asm {
-//     test($a, $a, sign=$out);
-//   }
-// }
-// 
-// insnrule lt {
-//   var $a : register;
-//   var $b : register;
-//   var $out : register;
-// 
-//   pattern {
-//     lt(left=$a, right=$b, dest->$out);
-//   }
-// 
-//   asm {
-//     cmp($a, $b, sign=$out);
-//   }
-// }
+insnrule load_zero {
+  var $ty : regtype;
+  var $x : constant;
+  var $out : register;
 
-insnrule indexed_load {
-  var $a : register;
-  var $b : register;
-  var $c : register;
-  var $d : register;
-  var $x : register;
-  var $pow2 : constant;
-  var $pow2ty : regtype;
+//  regclass $out gp;
+  if [[ isZero($x) ]];
 
   pattern {
-    { const(const=($pow2ty) $pow2, dest->$c);
-      { mul(left=$x, right=$c, dest->$a) |
-        mul(left=$c, right=$x, dest->$a) }
+    const(const=($ty) $x, dest->($ty) $out);
+  }
+
+  asm {
+    [[ auto in1($fn.variable("in", $ty)); ]];
+    [[ $builder.arbitrary(in1, regclass::gp); ]];
+    xor($out, [[in1]], [[in1]]);
+  }
+}
+
+insnrule load_const {
+  var $x : constant;
+  var $out : register;
+  var $ty : regtype;
+
+  pattern {
+    const(const=($ty) $x, dest->$out);
+  }
+  asm {
+    mov($out, [[ ::nnc::arch::x86_64::types::modrmimm($x, $ty) ]]);
+  }
+}
+
+insnrule sint_mul {
+  var $ty : regtype;
+  var $x : register;
+  var $y: register;
+  var $out: register;
+  var $c : constant;
+
+  pattern {
+    { const(const=$c, dest->$y); }?
+    { mul(left=($ty)$x, right=$y, dest->$out);
+    | mul(left=($ty)$y, right=$x, dest->$out); }
+  }
+
+  check [[ std::cerr << "Got mul " << $ty << " " << $x->name() << " constant: " << (void *) $c.data() << std::endl;
+           return true; ]];
+  if [[isIntType(*$ty) ]];
+
+  asm {
+    [[::nnc::compile::RtlTypeInfo info(*$ty);]];
+    imul($out, $y, [[$c.data() ? ::nnc::arch::x86_64::types::modrmimm($c, $ty) : $x]]) if [[ info.intFormat() == ::nnc::compile::RtlTwosComplement ]];
+//    mul($out, $x, $y) if [[ info.intFormat() == ::nnc::compile::RtlUnsigned ]];
+  }
+};
+
+insnrule lt_zero {
+  var $ty: regtype;
+  var $a: register;
+  var $c : register;
+  var $x : constant;
+  var $out : register;
+
+  pattern {
+    const(const=$x, dest->$c);
+    lt(left=$a, right=$c, dest->$out);
+  }
+
+  if "isZero($x)";
+
+  asm {
+    test($a, $a, sign=$out);
+  }
+}
+
+insnrule lt {
+  var $a : register;
+  var $b : register;
+  var $out : register;
+  var $c : constant;
+  var $ty : regtype;
+
+  pattern {
+    { const(const=($ty) $c, dest->$b); }?
+    lt(left=$a, right=$b, dest->$out);
+  }
+
+  asm {
+    cmp($a, [[ $c.data() ? ::nnc::arch::x86_64::types::modrmimm($c, $ty) : $b ]], sign=$out);
+  }
+}
+
+insnrule indexed_muladd {
+  var $base : register;
+  var $index : register;
+  var $scale : register;
+  var $intptr : register;
+  var $scaledIndex : register;
+  var $pow2 : constant;
+  var $pow2ty : regtype;
+  var $ty : regtype;
+
+  pattern {
+    { const(const=($pow2ty) $pow2, dest->$scale);
+      { mul(left=$scaledIndex, right=$scale, dest->$index) |
+        mul(left=$scale, right=$scaledIndex, dest->$index) }
     }?
 
-    { add(left=$a, right=$b, dest->$c) |
-      add(left=$b, right=$a, dest->$c) }
+    { add(left=$base, right=$index, dest->($ty) $intptr) |
+      add(left=$index, right=$base, dest->($ty) $intptr) }
+  };
 
-    inttoptr(in=$c, out->$d);
-    load(addr=$d, dest->$x);
+  extraPrivate = [[
+    int shiftValue;
+  ]];
+
+  if [[ isIntType(*$ty) ]];
+
+  check [[
+      if ( $pow2ty && isIntType(*$pow2ty) ) {
+        shiftValue = log2(::nnc::compile::interpretAsInt($pow2));
+        return ( shiftValue >= 0 && shiftValue <= 3 );
+      } else {
+      shiftValue = 0;
+      return !$pow2ty;
+      }
+  ]];
+
+  asm {
+    lea($intptr, [[::nnc::arch::x86_64::types::modrm::memref($base, $ty, $scaledIndex ? $scaledIndex : $index, shiftValue)]]);
+  };
+}
+
+insnrule indexed_load {
+  var $base : register;
+  var $index : register;
+  var $scale : register;
+  var $intptr : register;
+  var $ptr : register;
+  var $scaledIndex : register;
+  var $pow2 : constant;
+  var $pow2ty : regtype;
+  var $out : register;
+  var $ty: regtype;
+
+  pattern {
+    { const(const=($pow2ty) $pow2, dest->$scale);
+      { mul(left=$scaledIndex, right=$scale, dest->$index) |
+        mul(left=$scale, right=$scaledIndex, dest->$index) }
+    }?
+
+    { add(left=$base, right=$index, dest->$intptr) |
+      add(left=$index, right=$base, dest->$intptr) }
+
+    inttoptr(in=$intptr, out->$ptr);
+    load(addr=$ptr, dest->($ty) $out);
   }
 
   extraPrivate = [[
@@ -128,68 +176,253 @@ insnrule indexed_load {
   ]];
 
   check [[
-      std::cerr << "In indexed load got pow2 " << $pow2ty << std::endl;
       if ( $pow2ty && isIntType(*$pow2ty) ) {
         shiftValue = log2(::nnc::compile::interpretAsInt($pow2));
-        std::cerr << "Got shift value " << shiftValue << std::endl;
         return ( shiftValue >= 0 && shiftValue <= 3 );
-      } else return false;
+      } else { shiftValue = 0; return true; }
+  ]];
+
+  check [[
+    ::nnc::compile::RtlTypeInfo info(*$ty);
+    if ( info.isIntType() && info.width() >= 32 ) {
+      if ( $index || $pow2ty ) return false;
+    }
+    return true;
   ]];
 
   asm {
-    mov($x, [[::nnc::arch::x86_64::types::modrm::memref($a, $b)]]);
+    [[::nnc::compile::RtlTypeInfo info(*$ty);]];
+    mov($out, [[::nnc::arch::x86_64::types::modrm::memref($base, $ty, $scaledIndex ? $scaledIndex : $index, shiftValue)]]) if [[ info.isIntType() ]];
+    movss($out, [[::nnc::arch::x86_64::types::modrm::memref($base, $ty, $scaledIndex ? $scaledIndex : $index, shiftValue)]]) if [[ info.isFloatType() ]];
   }
 }
 
-//insnrule indexed_store {
-//  var $base : register;
-//  var $index : register;
-//  var $intptr : register;
-//  var $ptr : register;
-//  var $stored : register;
-//
-//  pattern {
-//    add(left=$base, right=$index, dest->$intptr);
-//    inttoptr(in=$intptr, out->$ptr);
-//    store(addr=$ptr, value=$stored);
-//  }
-//
-//  asm {
-//    mov([[::nnc::arch::x86_64::types::modrm::memref($base, $index)]], [[::nnc::arch::x86_64::types::modrmimm($stored)]]);
-//  }
-//}
-//
-//insnrule add_fp_16_to_32 {
-//  var $left : register;
-//  var $right : register;
-//  var $dest : register;
-//
-//  pattern {
-//    add(left=$left, right=$right, dest->$dest);
-//  }
-//
-//  check [[ ::nnc::compile::RtlTypeInfo lty(*$left->type()), rty(*$right->type());
-//           return (lty.isFloatType() && rty.isFloatType() && lty.width() == rty.width() && lty.width() == 32); ]];
-//
-//  asm {
-//    addps($dest, $left, $right);
-//  }
-//}
+insnrule inttoptr {
+  var $intptr: register;
+  var $ptr: register;
 
-//
-//insnrule zext_32_to_64 {
-//  var $in;
-//  var $out;
-//
-//  pattern {
-//    zext(in=$in, $out=$out);
-//  }
-//
-//  if [[intTypeWidth($in) == 32 && intTypeWidth($out) == 64]];
-//
-//  regclass $in : gp;
-//  regclass $out : gp;
-//
-//  // Add an alias instead of emitting anything
-//  alias $in $out;
-//}
+  pattern {
+    inttoptr(in=$intptr, out->$ptr);
+  }
+
+  alias $intptr $ptr;
+}
+
+insnrule load {
+  var $addr : register;
+  var $ty : regtype;
+  var $out : register;
+
+  pattern {
+    load(addr=$addr, dest->($ty) $out);
+  }
+
+  asm {
+    [[using namespace ::nnc::arch::x86_64::types;]];
+    [[using namespace ::nnc::compile;]];
+    [[RtlTypeInfo info(*$ty);]];
+    mov($out, [[modrm::memref($addr, $ty)]]) if [[info.isIntType()]];
+    movss($out, [[modrm::memref($addr, $ty)]]) if [[info.isFloatType()]];
+  }
+}
+
+insnrule store {
+  var $addr : register;
+  var $ty : regtype;
+  var $in : register;
+
+  pattern {
+    store(addr=$addr, value=($ty) $in);
+  }
+
+  asm {
+    [[using namespace ::nnc::arch::x86_64::types;]];
+    [[using namespace ::nnc::compile;]];
+    [[RtlTypeInfo info(*$ty);]];
+    mov([[modrm::memref($addr, $ty)]], $in) if [[info.isIntType()]];
+    movss([[modrm::memref($addr, $ty)]], $in) if [[info.isFloatType()]];
+  }
+}
+
+insnrule indexed_store {
+  var $base : register;
+  var $index : register;
+  var $scale : register;
+  var $intptr : register;
+  var $ptr : register;
+  var $scaledIndex : register;
+  var $pow2 : constant;
+  var $pow2ty : regtype;
+  var $in : register;
+  var $ty: regtype;
+
+  pattern {
+    { const(const=($pow2ty) $pow2, dest->$scale);
+      { mul(left=$scaledIndex, right=$scale, dest->$index) |
+        mul(left=$scale, right=$scaledIndex, dest->$index) }
+    }?
+
+    { add(left=$base, right=$index, dest->$intptr) |
+      add(left=$index, right=$base, dest->$intptr) }
+
+    inttoptr(in=$intptr, out->$ptr);
+    store(addr=$ptr, value=($ty) $in);
+  }
+
+  extraPrivate = [[
+    int shiftValue;
+  ]];
+
+  check [[
+      if ( $pow2ty && isIntType(*$pow2ty) ) {
+        shiftValue = log2(::nnc::compile::interpretAsInt($pow2));
+        return ( shiftValue >= 0 && shiftValue <= 3 );
+      } else { shiftValue = 0; return true; }
+  ]];
+
+  asm {
+    [[::nnc::compile::RtlTypeInfo info(*$ty);]];
+    mov([[::nnc::arch::x86_64::types::modrm::memref($base, $ty, $scaledIndex ? $scaledIndex : $index, shiftValue)]],
+        [[::nnc::arch::x86_64::types::modrm($in)]]) if [[ info.isIntType() ]];
+    movss([[::nnc::arch::x86_64::types::modrm::memref($base, $ty, $scaledIndex ? $scaledIndex : $index, shiftValue)]],
+          $in) if [[ info.isFloatType() ]];
+  }
+}
+
+insnrule add_fp_32 {
+  var $left : register;
+  var $right : register;
+  var $dest : register;
+
+  pattern {
+    add(left=$left, right=$right, dest->$dest);
+  }
+
+  check [[ ::nnc::compile::RtlTypeInfo lty(*$left->type()), rty(*$right->type());
+           return (lty.isFloatType() && rty.isFloatType() && lty.width() == rty.width() && lty.width() == 32); ]];
+
+  asm {
+    addss($dest, $left, $right);
+  }
+}
+
+insnrule sub {
+  var $left: register;
+  var $right: register;
+  var $dest: register;
+  var $ty: regtype;
+  var $const: constant;
+
+  pattern {
+    { const(const=$const, dest->$right); }?
+    sub(left=$left, right=$right, dest->($ty) $dest);
+  }
+
+  if [[isIntType(*$ty)]];
+
+  asm {
+    sub($dest, $left, $right) if [[!$const.data()]];
+    sub($dest, $left, [[::nnc::arch::x86_64::types::modrmimm($const, $ty)]]) if [[$const.data()]];
+  }
+}
+
+insnrule add {
+  var $left: register;
+  var $right: register;
+  var $dest: register;
+  var $ty: regtype;
+  var $const: constant;
+
+  pattern {
+    { const(const=$const, dest->$right); }?
+    add(left=$left, right=$right, dest->($ty) $dest);
+  }
+
+  if [[isIntType(*$ty)]];
+
+  asm {
+    add($dest, $left, $right) if [[!$const.data()]];
+    add($dest, $left, [[::nnc::arch::x86_64::types::modrmimm($const, $ty)]]) if [[$const.data()]];
+  }
+}
+
+insnrule dec {
+  var $left : register;
+  var $one : constant;
+  var $onex : register;
+  var $ty : regtype;
+  var $dest : register;
+
+  pattern {
+    const(const=($ty) $one, dest-> $onex);
+    sub(left=$left, right=$onex, dest->$dest);
+  }
+
+  check [[
+    if ( isIntType(*$ty) ) {
+      std::uint64_t i = ::nnc::compile::interpretAsInt($one);
+      return i == 1;
+    } else return false;
+  ]];
+
+  asm {
+    dec($dest, $left);
+  }
+}
+
+insnrule inc {
+  var $left : register;
+  var $one : constant;
+  var $onex : register;
+  var $ty : regtype;
+  var $dest : register;
+
+  pattern {
+    const(const=($ty) $one, dest-> $onex);
+    add(left=$left, right=$onex, dest->$dest);
+  }
+
+  check [[
+    if ( isIntType(*$ty) ) {
+      std::uint64_t i = ::nnc::compile::interpretAsInt($one);
+      return i == 1;
+    } else return false;
+  ]];
+
+  asm {
+    inc($dest, $left);
+  }
+}
+
+// Due to the way x86-64 handles 32-bit values, we always have the top top dword being 0
+insnrule zext_32_to_64 {
+  var $in : register;
+  var $out : register;
+
+  pattern {
+    zext(in=$in, out->$out);
+  }
+
+  check [[
+    ::nnc::compile::RtlTypeInfo inty(*$in->type()), outty(*$out->type());
+    return ( inty.isIntType() && outty.isIntType() ) &&
+      inty.width() == 32 && outty.width() == 64;
+  ]];
+
+  alias $in $out;
+}
+
+// Ptrto int
+insnrule ptr_to_int64 {
+  var $ptr : register;
+  var $int : register;
+
+  pattern {
+    ptrtoint(in=$ptr, out->$int);
+  }
+
+  if [[ $int->type() == fn.types().intType(::nnc::compile::RtlTwosComplement, 64) ]];
+
+  alias $ptr $int;
+}
+

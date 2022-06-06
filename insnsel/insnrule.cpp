@@ -139,6 +139,10 @@ void InsnRuleFactory::addGeneratedInsn(AsmInsnCall &&c) {
   m_generate.emplace_back(std::move(c));
 }
 
+void InsnRuleFactory::addAlias(const std::string &left, const std::string &right) {
+  m_aliases.emplace(left, right);
+}
+
 InsnRule *InsnRuleFactory::build(const std::string &name) {
   return new InsnRule(name, std::move(*this));
 }
@@ -163,6 +167,17 @@ InsnRuleVarDecl::~InsnRuleVarDecl() {
 
 void InsnRuleVarDecl::modify(InsnRuleFactory &f) {
   f.declareVariable(*this);
+}
+
+InsnAliasDecl::InsnAliasDecl(const std::string &left, const std::string &right)
+  : m_left(left), m_right(right) {
+}
+
+InsnAliasDecl::~InsnAliasDecl() {
+}
+
+void InsnAliasDecl::modify(InsnRuleFactory &f) {
+  f.addAlias(m_left, m_right);
 }
 
 InsnCheckDecl::InsnCheckDecl(const nnc::location &l,
@@ -245,6 +260,10 @@ void InsnPattern::declMnemonicInterest(MnemonicInterestDeclarer &d) const {
   d.declareInterest(mnemonic());
 }
 
+void InsnPattern::markOps(OpMarker &d) const {
+  d.mark();
+}
+
 InsnRuleModifier *InsnPattern::modifier() {
   return static_cast<InsnRuleModifier *>(this);
 }
@@ -318,6 +337,11 @@ AsmInsnCall::AsmInsnCall(const std::string &mn)
   , m_mnemonic(mn) {
 }
 
+AsmInsnCall::AsmInsnCall(const template_string &l)
+  : m_context(NncErrorContextStack::current()),
+    m_literal(l) {
+}
+
 void AsmInsnCall::addArg(const template_string &t) {
   m_args.push_front(t);
 }
@@ -335,6 +359,8 @@ void AsmInsnCall::swap(AsmInsnCall &c) {
   std::swap(m_mnemonic, c.m_mnemonic);
   std::swap(m_args, c.m_args);
   std::swap(m_namedArgs, c.m_namedArgs);
+  std::swap(m_literal, c.m_literal);
+  std::swap(m_conds, c.m_conds);
 }
 
 AsmInsnArg::~AsmInsnArg() {
@@ -374,6 +400,44 @@ void InsnRuleCompoundPattern::visitPatterns(InsnPatternVisitor &d) const {
 void InsnRuleCompoundPattern::declMnemonicInterest(MnemonicInterestDeclarer &d) const {
   for ( const auto &gen: m_gens )
     gen->declMnemonicInterest(d);
+}
+
+void InsnRuleCompoundPattern::markOps(OpMarker &d) const {
+  for ( const auto &gen: m_gens )
+    gen->markOps(d);
+}
+
+class OccludingOpMarker : public OpMarker {
+public:
+  OccludingOpMarker(OpMarker &m) : m_underlying(m) { }
+  virtual ~OccludingOpMarker() { }
+
+  virtual void mark() override { m_underlying.skip(); }
+  virtual void skip() override { m_underlying.skip(); }
+
+private:
+  OpMarker &m_underlying;
+};
+
+InsnRuleHiddenPattern::InsnRuleHiddenPattern(InsnGen *g)
+  : m_hidden(g) {
+}
+
+InsnRuleHiddenPattern::~InsnRuleHiddenPattern() {
+  delete m_hidden;
+}
+
+void InsnRuleHiddenPattern::visitPatterns(InsnPatternVisitor &d) const {
+  m_hidden->visitPatterns(d);
+}
+
+void InsnRuleHiddenPattern::declMnemonicInterest(MnemonicInterestDeclarer &d) const {
+  m_hidden->declMnemonicInterest(d);
+}
+
+void InsnRuleHiddenPattern::markOps(OpMarker &d) const {
+  OccludingOpMarker m(d);
+  m_hidden->markOps(m);
 }
 
 InsnRuleConjunction::InsnRuleConjunction() {
@@ -457,6 +521,10 @@ void InsnRuleOptionalPattern::visitPatterns(InsnPatternVisitor &d) const {
 
 void InsnRuleOptionalPattern::declMnemonicInterest(MnemonicInterestDeclarer &d) const {
   m_optional->declMnemonicInterest(d);
+}
+
+void InsnRuleOptionalPattern::markOps(OpMarker &d) const {
+  m_optional->markOps(d);
 }
 
 InsnGen *InsnRuleOptionalPattern::make(InsnGen *a) {

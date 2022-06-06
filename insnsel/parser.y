@@ -11,7 +11,6 @@
 
 %parse-param {ArchDescLexer &lexer} {ArchDescBuilder &builder}
 
-%token ARCHITECTURE
 %token CHEADER
 %token INCLUDE
 %token CODE
@@ -24,6 +23,7 @@
 %token INSN
 %token PATTERN
 %token CONSTRUCTOR
+%token INTERSECT
 %token IF
 %token CHECK
 %token ASM
@@ -37,6 +37,7 @@
 %token CPAREN
 %token SEMICOLON
 %token BAR
+%token DASH
 %token QUESTIONMARK
 %token COLON
 %token COMMA
@@ -58,11 +59,16 @@
 %nterm  <ParamDecl *>          paramDecl
 %nterm  <Literal *>            literal
 %nterm  <RegMemberDecl *>      regclassRegDecl
+%nterm  <RegMemberDecl *>      regclassRegDeclMore
+%nterm  <std::pair<int, int> >  regclassRangeElem
+%nterm  <RangedRegMemberDeclarer *>    regclassRangeMore
+%nterm  <RangedRegMemberDeclarer *> regclassRange
+%nterm  <RegMemberDeclarer *>   regclassRegDeclMember
 %nterm  <RegClassTypeDecl *>   regclassTypeDecl
 %nterm  <RegType>              regtype
 %nterm  <ClobberListDecl *>    clobberRegisterList
 %nterm  <RegisterModifier *>   regBodyDecl
-%nterm  <RegisterFactory *>    registerBody
+%nterm  <CompositeRegisterModifier *>    registerBody
 
 %nterm <InsnRule *> insnRuleDecl
 %nterm <InsnRuleFactory *> insnRuleBody
@@ -75,6 +81,7 @@
 %nterm <InsnGen *> patternsConjunction
 %nterm <InsnGen *> morePatternsConjunction
 %nterm <bool> optionalPattern
+%nterm <bool> optionalPatternSemicolon
 %nterm <InsnGen *> baseInsnPattern
 %nterm <InsnPattern *> simpleInsnPattern
 %nterm <InsnArgPatterns *>    insnArgs
@@ -85,6 +92,7 @@
 %nterm <std::string> insnArgExprPattern
 
 %nterm <template_string> asmInsnExpr
+%nterm <std::optional<template_string>> asmConditional
 %nterm <AsmInsnCall *> asmInsnArgs
 %nterm <AsmInsnCall *> moreAsmInsnArgs
 %nterm <AsmInsnCall *> asmInsn
@@ -98,6 +106,7 @@
 %nterm <InsnArgsModifier *> moreInsnArgsDeclList
 %nterm <InsnModifier *> insnBodyDecl
 %nterm <InsnVarDecl *> insnVarDecl
+%nterm <std::string> optionalRegClass
 %nterm <InsnVarType *> insnVarTyDecl
 %nterm <InsnVarDeclFactory *> insnVarDeclBody
 %nterm <InsnVarDeclFactory *> insnVarDeclBodyDecls
@@ -109,6 +118,8 @@
 %nterm <ConstructorDecl *> constructorArgList
 %nterm <ConstructorDecl *> moreConstructorArgs
 %nterm <InsnVarType *> constructorArgTy
+%nterm <IntersectDecl *> intersectDecl
+%nterm <std::optional<template_string>> postfixIfDecl
 
 %nterm <CTypeModifier *> ctypeBodyDecl
 %nterm <CType *> ctypeBody
@@ -169,7 +180,7 @@ file:           %empty
         |       decl file
         ;
 
-decl:           architectureDecl
+decl:           paramDecl { builder.param($paramDecl->name(), $paramDecl->value()); delete $paramDecl; }
         |       includeDecl
         |       cheaderDecl
         |       regclassDecl
@@ -211,12 +222,6 @@ cheaderDecl:    CHEADER STRING SEMICOLON {
                 }
         ;
 
-architectureDecl:
-                ARCHITECTURE STRING SEMICOLON {
-                    builder.setArchitecture($2);
-                }
-        ;
-
 includeDecl:    INCLUDE STRING SEMICOLON {
                     NncErrorLocation l(@2, "Included from here");
                     builder.includeFile(lexer.filename(), $2);
@@ -231,18 +236,15 @@ regclassDecl:   REGCLASS ID OBRACE regclassBody {
                 }
         ;
 
-registerDecl:    REGISTER ID OBRACE registerBody {
-                     auto newRegister($4->build($2));
-                     delete $4;
-
-                     builder.addRegister(newRegister);
+registerDecl:    REGISTER ID[regName] OBRACE registerBody {
+                     $registerBody->modify(builder.getRegister($regName));
+                     delete $registerBody;
                  }
         ;
 
-registerBody:   cbraceSemi { $$ = new RegisterFactory(); }
-        |       regBodyDecl registerBody {
-                  $1->modify(*$2);
-                  delete $1;
+registerBody:   cbraceSemi { $$ = new CompositeRegisterModifier(); }
+        |       regBodyDecl registerBody[rest] {
+                  $rest->addModifier($regBodyDecl);
                   $$ = $2;
                 }
         ;
@@ -275,17 +277,52 @@ regclassBodyDecl:   paramDecl { $$ = static_cast<RegClassModifier *>($1); }
         |           TYPE regclassTypeDecl SEMICOLON { $$ =static_cast<RegClassModifier *>($2); }
         ;
 
-regclassRegDecl:
-                ID COMMA regclassRegDecl
+regclassRegDecl: regclassRegDeclMember regclassRegDeclMore
                 {
-                    $3->addRegister($1);
-                    $$ = $3;
+                    $regclassRegDeclMember->modify(*$regclassRegDeclMore);
+                    delete $regclassRegDeclMember;
+                    $$ = $regclassRegDeclMore;
                 }
-        |       ID
+        ;
+
+regclassRegDeclMember:
+                ID OBRACKET regclassRange CBRACKET
                 {
-                    $$ = new RegMemberDecl();
-                    $$->addRegister($1);
+                    $regclassRange->setName($ID);
+                    $$ = $regclassRange;
                 }
+        |       ID { $$ = new SingleRegMemberDeclarer($ID); }
+        ;
+
+regclassRange:  regclassRangeElem regclassRangeMore
+                {
+                    $regclassRangeMore->addRange($regclassRangeElem.first, $regclassRangeElem.second);
+                    $$ = $regclassRangeMore;
+                }
+        ;
+
+regclassRangeMore:
+                 COMMA regclassRange
+                 { $$ = $regclassRange; }
+        |        %empty { $$ = new RangedRegMemberDeclarer(); }
+        ;
+
+regclassRangeElem:
+                 NUMBER[start] DASH NUMBER[end]
+                 {
+                     NncErrorLocation l(@start+@end, "While parsing the register name range");
+                     if ( $start > $end ) {
+                         throw NncParseError(@start, "Start of register name range is greater than the end");
+                     }
+
+                     $$ = std::make_pair($start, $end);
+                }
+        |       NUMBER { $$ = std::make_pair($NUMBER, $NUMBER); }
+        ;
+
+regclassRegDeclMore:
+                COMMA regclassRegDecl { $$ = $regclassRegDecl; }
+        |       %empty { $$ = new RegMemberDecl(); }
         ;
 
 regclassTypeDecl:
@@ -357,6 +394,21 @@ insnBodyDecls:  insnBodyDecl insnBodyDecls {
 insnBodyDecl:   paramDecl { $$ = static_cast<InsnModifier *>($1); }
         |       insnVarDecl { $$ = static_cast<InsnModifier *>($1); }
         |       constructorDecl { $$ = static_cast<InsnModifier *>($1); }
+        |       intersectDecl { $$ = static_cast<InsnModifier *>($1); }
+        ;
+
+intersectDecl:  INTERSECT OPAREN VARNAME[a] COMMA VARNAME[b] COMMA ID[regclass] CPAREN postfixIfDecl SEMICOLON
+                {
+                    $$ = new IntersectDecl($a, $b, $regclass);
+                    if ( $postfixIfDecl )
+                        $$->setCondition(*$postfixIfDecl);
+                }
+        ;
+
+postfixIfDecl:   IF STRING {
+                     $$ = template_string($STRING);
+                 }
+        |        %empty { }
         ;
 
 constructorDecl:
@@ -399,10 +451,17 @@ insnVarDecl:    VAR VARNAME[name] COLON insnVarTyDecl[tyDecl] insnVarDeclBody[bo
                 }
         ;
 
+optionalRegClass:
+                 COMMA ID { $$ = $ID; }
+        |        %empty
+        ;
+
 insnVarTyDecl:  REGISTER { $$ = new InsnRegisterVarType(); }
-        |       REGISTER OPAREN rtlType CPAREN {
+        |       REGISTER OPAREN rtlType optionalRegClass CPAREN {
                   auto newTy(new InsnRegisterVarType());
                   newTy->setRtlType($rtlType);
+                  if ( !$optionalRegClass.empty() )
+                      newTy->setRegClass($optionalRegClass);
                   $$ = static_cast<InsnVarType *>(newTy);
                 }
         |       CONSTANT { $$ = new InsnConstantVarType(); }
@@ -418,13 +477,15 @@ insnVarTyDecl:  REGISTER { $$ = new InsnRegisterVarType(); }
                     throw NncParseError(@ctypeName, "Type " + $ctypeName + " requires an RTL type parameter");
                   $$ = static_cast<InsnVarType *>(new CType(ty));
                 }
-        |       ID[ctypeName] OPAREN rtlType CPAREN {
+        |       ID[ctypeName] OPAREN rtlType optionalRegClass CPAREN {
                   NncErrorLocation l(@ctypeName, "In the var type declaration");
                   CType &ty(builder.cType($ctypeName));
                   if ( !ty.acceptsRtlType() )
                     throw NncParseError(@ctypeName, "Type " + $ctypeName + " does not accept RTL type parameters");
                   auto newType(new CType(ty));
                   newType->setRtlType($rtlType);
+                  if ( !$optionalRegClass.empty() )
+                      newType->setRegClass($optionalRegClass);
                   $$ = static_cast<InsnVarType *>(newType);
                 }
         ;
@@ -492,6 +553,9 @@ insnRuleBodyDecl:
         |        CHECK STRING SEMICOLON { $$ = static_cast<InsnRuleModifier *>(new InsnCheckDecl(@CHECK, $2)); }
         |        paramDecl { $$ = static_cast<InsnRuleModifier *>($1); }
         |        ASM OBRACE asmDecl { $$ = static_cast<InsnRuleModifier *>($3); }
+        |        ALIAS VARNAME[left] VARNAME[right] SEMICOLON {
+                     $$ = static_cast<InsnRuleModifier *>(new InsnAliasDecl($left, $right));
+                 }
         ;
 
 patternsDecl: patternsDisjunction { $$ = static_cast<InsnRuleModifier *>($patternsDisjunction); }
@@ -516,12 +580,24 @@ patternsConjunction:
         |       baseInsnPattern[insn] {
                   $$ = static_cast<InsnGen *>($insn);
                 }
-        |       OBRACE patternsDisjunction[head] cbraceSemi optionalPattern morePatternsConjunction[rest] {
-                  if ( $optionalPattern ) {
+        |       OBRACE patternsDisjunction[head] CBRACE optionalPatternSemicolon[optional] morePatternsConjunction[rest] {
+                  if ( $optional ) {
                     $head = InsnRuleOptionalPattern::make($head);
                   }
                   $$ = InsnRuleConjunction::make($head, $rest);
                 }
+        |       OBRACKET patternsDisjunction[head] CBRACKET optionalPatternSemicolon[optional] morePatternsConjunction[rest] {
+                    if ( $optional ) {
+                        $head = InsnRuleOptionalPattern::make($head);
+                    }
+                    auto head(new InsnRuleHiddenPattern($head));
+                    $$ = InsnRuleConjunction::make(head, $rest);
+                }
+        ;
+
+optionalPatternSemicolon:
+                optionalPattern { $$ = $optionalPattern; }
+        |       optionalPattern SEMICOLON { $$ = $optionalPattern; }
         ;
 
 optionalPattern:
@@ -588,15 +664,27 @@ asmDecl:        cbraceSemi { $$ = new InsnRuleAsmDecl(); }
         }
         ;
 
-asmInsn:        ID OPAREN asmInsnArgs {
+asmConditional: IF STRING { $$ = template_string($STRING); }
+        |       %empty
+        ;
+
+asmInsn:        ID OPAREN asmInsnArgs asmConditional {
                     NncErrorLocation l(@1 + @3, "In the generated asm expression");
                     $3->mnemonic($1);
                     $3->errorContext() = NncErrorContextStack::current();
                     $$ = $3;
+                    if ( $asmConditional )
+                        $$->addCondition(*$asmConditional);
                 }
-        |       ID {
+        |       ID asmConditional {
                   NncErrorLocation l(@1, "In the generated asm expression");
                   $$ = new AsmInsnCall($1);
+                  if ( $asmConditional )
+                      $$->addCondition(*$asmConditional);
+                }
+        |       STRING {
+                  NncErrorLocation l(@STRING, "In the generated asm expression");
+                  $$ = new AsmInsnCall(template_string($STRING));
                 }
         ;
 

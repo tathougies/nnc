@@ -52,6 +52,7 @@ namespace nnc {
         std::uint64_t ret;
         std::uint8_t d[8];
       };
+      ret = 0;
       auto last(v.end());
       if ( v.size() > 8 )
         last = v.begin() + 8;

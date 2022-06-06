@@ -3,6 +3,7 @@
 
 #include "compile/rtl.hpp"
 #include "compile/rtl_ops_base.hpp"
+#include "compile/registers.hpp"
 
 #include <memory>
 #include <string>
@@ -10,6 +11,22 @@
 namespace nnc {
   namespace compile {
     class InsnSelector;
+
+    class RtlAliasOp : public RtlOp {
+    public:
+      RtlAliasOp(std::shared_ptr<RtlVariable> a,
+                 std::shared_ptr<RtlVariable> b);
+      virtual ~RtlAliasOp();
+
+      virtual void operands(RtlOperandVisitor &v) const;
+      virtual void operand(const std::string &nm, std::shared_ptr<RtlVariable> var);
+
+      inline std::shared_ptr<RtlVariable> src() const { return m_a; }
+      inline std::shared_ptr<RtlVariable> dest() const { return m_b; }
+
+    private:
+      std::shared_ptr<RtlVariable> m_a, m_b;
+    };
 
     class InterestRecorder {
     public:
@@ -23,16 +40,6 @@ namespace nnc {
 
       virtual void apply(InsnSelector &sel, RtlOp &op) const =0;
       virtual void registerInterest(InterestRecorder &r) const =0;
-    };
-
-    class RegClass {
-    public:
-      virtual std::string name() const =0;
-    };
-
-    class Register {
-    public:
-      virtual std::string name() const =0;
     };
 
     class StackAllocation {
@@ -54,6 +61,20 @@ namespace nnc {
       virtual void matchOp(RtlOp *op) =0;
     };
 
+    class RtlOpSelector : public RtlOpBuilder {
+    public:
+      virtual void alias(const std::shared_ptr<RtlVariable> &left,
+                         const std::shared_ptr<RtlVariable> &right) =0;
+
+      // Signal to the selector that the value of this variable is arbitrary
+      virtual void arbitrary(const RtlVariablePtr &v, const RegClass &rc);
+    };
+
+    class RtlCostedOp {
+    public:
+      virtual std::uint64_t cost() const =0;
+    };
+
     class SelectedInsn {
     public:
       virtual ~SelectedInsn();
@@ -61,7 +82,7 @@ namespace nnc {
       /* Used to 'mark off' operations that this instruction will handle */
       virtual void consumedOperations(RtlOpMarker &marker) const =0;
 
-      virtual void build(RtlBasicBlock &compiled) const =0;
+      virtual void build(RtlOpSelector &compiled) const =0;
     };
 
     class InsnSelector {

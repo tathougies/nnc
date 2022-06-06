@@ -133,9 +133,13 @@ namespace nnc {
           MemTensor tensorLayout(m_cpu[index()]);
 
           for ( int i = 0; i < m_ix.size(); ++i) {
-            auto ref(m_ix[i]);
+            auto ref(m_ix[m_ix.size() - i - 1]);
             AxisStride &axisStride(tensorLayout[i]);
             auto dimIx(h.tensor(ref));
+
+            std::cerr << "Accessing dim ";
+            ref->print(std::cerr) << "(translates to " << dimIx->name() << ")" << std::endl;
+            std::cerr << "Axis " << axisStride.length << " stride: " << axisStride.stride << std::endl;
 
             auto dimIxVar(fn.variable("dimix", fn.types().intptr()));
             h.block()->cast(dimIx, dimIxVar);
@@ -355,7 +359,7 @@ namespace nnc {
         // just reuse the memory
         if ( tensor.isContiguous() ) {
           // Copy not required, re-use memory
-          m_cpu[dest->index()] = MemTensor(tensor.memoryIndex(), shape);
+          m_cpu[dest->index()] = MemTensor(tensor.memoryIndex(), m_cpu.batchSize(), shape);
         } else {
           // Copy required
           throw exception::NotImplemented("Copying reshaped tensor");
@@ -470,11 +474,12 @@ namespace nnc {
 
     MemTensor::MemTensor(const MemTensor &t)
       : m_index(t.m_index),
+        m_batchSize(t.m_batchSize),
         m_stride(t.m_stride) {
     }
 
-    MemTensor::MemTensor(const CpuMemIndex &sourceIndex, const TensorShape &shape)
-      : m_index(sourceIndex) {
+    MemTensor::MemTensor(const CpuMemIndex &sourceIndex, std::size_t batchSize, const TensorShape &shape)
+      : m_index(sourceIndex), m_batchSize(batchSize) {
       int stride = 1;
 
       for ( int i = 0; i < shape.dims(); ++ i) {
@@ -482,10 +487,12 @@ namespace nnc {
         m_stride.emplace_back(AxisStride(len, stride));
         stride *= len;
       }
+      m_stride.emplace_back(AxisStride(batchSize, stride));
     }
 
     void MemTensor::swap(MemTensor &a) {
       std::swap(m_index, a.m_index);
+      std::swap(m_batchSize, a.m_batchSize);
       std::swap(m_stride, a.m_stride);
     }
 
@@ -512,7 +519,7 @@ namespace nnc {
     }
 
     int MemTensor::dims() const {
-      return m_stride.size();
+      return m_stride.size() + 1;
     }
 
     int MemTensor::sizeInDimension(int d) const {
@@ -580,7 +587,7 @@ namespace nnc {
 
     CpuTensorIndex CpuExecutor::newMemoryTensor(const CpuMemIndex &memIx) {
       auto &req(m_mem_requirements[memIx.index()]);
-      m_mem_tensors.emplace_back(memIx, req);
+      m_mem_tensors.emplace_back(memIx, m_batchSize, req);
       return CpuTensorIndex(m_mem_tensors.size() -1);
     }
 

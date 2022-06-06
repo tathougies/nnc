@@ -3,6 +3,17 @@
 
 #include <iostream>
 
+bool hasPrefix(const std::string &name, const std::string &prefix) {
+  if ( name.size() < prefix.size() ) return false;
+
+  return std::mismatch(prefix.begin(), prefix.end(), name.begin()).first ==
+    prefix.end();
+}
+
+std::string stripPrefix(const std::string &name, const std::string &prefix) {
+  return std::string(name.begin() + prefix.size(), name.end());
+}
+
 class RequiredAfterOptional : public NncCompileError, public std::exception {
 public:
   RequiredAfterOptional(const InsnArgDecl &required, const InsnArgDecl &optional)
@@ -65,7 +76,17 @@ InsnArgDecl::InsnArgDecl(const std::string &nm)
   m_customType = std::unique_ptr<InsnVarType>(new InsnRegisterVarType());
 }
 
-InsnBase::InsnBase() {
+InsnBase::InsnBase()
+  : m_context(NncErrorContextStack::current()),
+    m_cost(1000) {
+}
+
+InsnArgDecl &InsnBase::arg(const std::string &nm) {
+  decltype(m_args)::iterator i(std::find_if(m_args.begin(), m_args.end(), [&](auto &x) { return x.name() == nm; }));
+  if ( i == m_args.end() )
+    throw NncGenerationError(m_context, "Argument " + nm + "not found");
+
+  return *i;
 }
 
 std::ostream &InsnBase::declareConstructor(const std::string &nm, std::ostream &out, bool header) const {
@@ -100,6 +121,10 @@ void InsnFactory::addConstructor(ConstructorDecl &&decl) {
   m_constructors.emplace_front(std::move(decl));
 }
 
+void InsnFactory::addIntersection(IntersectDecl &&decl) {
+  m_intersects.emplace_front(std::move(decl));
+}
+
 InsnArgDecl &InsnFactory::addArgument(const std::string &nm) {
   return m_args.emplace_back(nm);
 }
@@ -125,7 +150,16 @@ InsnArgDecl &InsnFactory::argument(const std::string &nm) {
 }
 
 void InsnFactory::param(const std::string &s, const Literal &l) {
-  std::cerr << "Parameter " << s << " not valid for insn" << std::endl;
+  if ( s == "emit" ) {
+    template_string t;
+    SetTemplateStringLiteral set(t, WarnMissing("emit", "string"));
+    l.visit(set);
+    m_emit = std::move(t);
+  } else if ( s == "cost" ) {
+    SetNumberLiteral set(m_cost, WarnMissing("cost", "number"));
+    l.visit(set);
+  } else
+    std::cerr << "Parameter " << s << " not valid for insn" << std::endl;
 }
 
 Insn *InsnFactory::build(const std::string &name) {
@@ -256,6 +290,28 @@ InsnVarType::InsnVarType()
 InsnVarType::~InsnVarType() {
 }
 
+bool InsnVarType::hasRegClass() const {
+  return false;
+}
+
+void InsnVarType::setters(SettersVisitor &v) const {
+}
+
+void InsnVarType::outputIntersect(const std::string &declNm,
+                                  const std::string &aNm,
+                                  const std::string &bNm,
+                                  const std::string &regclassNm,
+                                  std::ostream &out) const {
+  out << declNm << ".intersect(" << aNm << ", " << bNm << ", regclass::" << regclassNm << ");" << std::endl;
+}
+
+std::ostream &InsnVarType::outputRegClasses(const std::string &visitorNm,
+                                            const std::string &argNm,
+                                            const std::string &memName,
+                                            std::ostream &out) const {
+  return out;
+}
+
 std::ostream &InsnVarType::outputVisitOperand(const std::string &visitorNm,
                                               const std::string &argName,
                                               const std::string &memName,
@@ -283,6 +339,22 @@ InsnRegisterVarType::InsnRegisterVarType() {
 }
 
 InsnRegisterVarType::~InsnRegisterVarType() {
+}
+
+
+std::ostream &InsnRegisterVarType::outputRegClasses(const std::string &visitorNm,
+                                                    const std::string &argNm,
+                                                    const std::string &memName,
+                                                    std::ostream &out) const {
+  if ( hasRegClass() ) {
+    out << visitorNm << ".regclass(\"" << argNm << "\", " << memName << ", regclass::" <<
+      cName(m_regClassName) << ");" << std::endl;
+  }
+  return out;
+}
+
+bool InsnRegisterVarType::hasRegClass() const {
+  return !m_regClassName.empty();
 }
 
 bool InsnRegisterVarType::isDefaultable() const {
@@ -388,10 +460,16 @@ CTypeModifier::~CTypeModifier() {
 CType::CType()
   : m_makeDefault("if ( !$var ) $var = nullptr;")
   , m_visitOperand("$visitor.operand(\"$name\", $member, $isInput, $isOutput);")
+  , m_visitRegclasses("$member.regclasses(\"$name\", $visitor, $default);")
+  , m_intersect("$a.intersect($visitor, $b, $regclass);")
   , m_acceptsRtlType(false) {
 }
 
 CType::~CType() {
+}
+
+bool CType::hasRegClass() const {
+  return true;
 }
 
 void CType::setRtlType(const InsnRtlType &ty) {
@@ -413,6 +491,12 @@ void CType::param(const std::string &name, const Literal &l) {
   } else if ( name == "visitOperands" ) {
     SetTemplateStringLiteral set(m_visitOperand, WarnMissing("visitOperands", "string"));
     l.visit(set);
+  } else if ( name == "visitRegclasses" ) {
+    SetTemplateStringLiteral set(m_visitRegclasses, WarnMissing("visitRegclasses", "string"));
+    l.visit(set);
+  } else if ( name == "intersection" ) {
+    SetTemplateStringLiteral set(m_intersect, WarnMissing("intersection", "string"));
+    l.visit(set);
   } else if ( name == "acceptsRtlType" ) {
     std::uint32_t v(~0);
     SetNumberLiteral set(v, WarnMissing("acceptsRtlType", "number"));
@@ -420,12 +504,51 @@ void CType::param(const std::string &name, const Literal &l) {
     if ( v != ~0 ) {
       m_acceptsRtlType = !!v;
     }
+  } else if ( hasPrefix(name, "setter.") ) {
+    auto setterFor(stripPrefix(name, "setter."));
+    template_string d;
+    SetTemplateStringLiteral set(d, WarnMissing(name, "string"));
+    l.visit(set);
+    m_setters[setterFor] = d;
   } else
     std::cerr << "Parameter " << name << " for Ctype is invalid" << std::endl;
 }
 
 bool CType::isDefaultable() const {
   return m_default.has_value();
+}
+
+void CType::setters(SettersVisitor &v) const {
+  for ( const auto &t: m_setters )
+    v.setter(t.first, t.second);
+}
+
+void CType::outputIntersect(const std::string &declNm,
+                            const std::string &aNm,
+                            const std::string &bNm,
+                            const std::string &rcNm,
+                            std::ostream &out) const {
+  std::map<std::string, std::string> vars {
+    { "visitor", declNm },
+    { "a", aNm },
+    { "b", bNm },
+    { "regclass",  "regclass::" + rcNm }
+  };
+  out << m_intersect.render(vars) << std::endl;
+}
+
+std::ostream &CType::outputRegClasses(const std::string &visitorNm,
+                                      const std::string &argNm,
+                                      const std::string &memName,
+                                      std::ostream &out) const {
+  std::map<std::string, std::string> vars {
+    { "visitor", visitorNm },
+    { "name", argNm },
+    { "member", memName },
+    { "default", "regclass::" + cName(m_regClassName) }
+  };
+  out << m_visitRegclasses.render(vars) << std::endl;
+  return out;
 }
 
 std::ostream &CType::outputCType(std::ostream &out) const {
@@ -496,4 +619,13 @@ void ConstructorDecl::addType(InsnVarType *ty) {
 
 void ConstructorDecl::modify(InsnFactory &f) {
   f.addConstructor(std::move(*this));
+}
+
+IntersectDecl::IntersectDecl(const std::string &a, const std::string &b,
+                             const std::string &regclass)
+  : m_a(a), m_b(b), m_regclass(regclass) {
+}
+
+void IntersectDecl::modify(InsnFactory &f) {
+  f.addIntersection(std::move(*this));
 }

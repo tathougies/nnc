@@ -62,13 +62,12 @@ private:
 
 /*                       Pattern aliases */
 
-ID [a-zA-Z][a-zA-Z0-9_]*
+ID [a-zA-Z][a-zA-Z0-9_\.]*
 HEXDIGIT [0-9a-fA-F]
 UI [0-9]+
 
 %%
 
-architecture { return nnc::parser::make_ARCHITECTURE(loc()); }
 c_header     { return nnc::parser::make_CHEADER(loc()); }
 include      { return nnc::parser::make_INCLUDE(loc()); }
 regclass     { return nnc::parser::make_REGCLASS(loc()); }
@@ -88,7 +87,9 @@ asm          { return nnc::parser::make_ASM(loc()); }
 code         { return nnc::parser::make_CODE(loc()); }
 ctype        { return nnc::parser::make_CTYPE(loc()); }
 constructor  { return nnc::parser::make_CONSTRUCTOR(loc()); }
+intersect    { return nnc::parser::make_INTERSECT(loc()); }
 
+\-           { return nnc::parser::make_DASH(loc()); }
 \{           { return nnc::parser::make_OBRACE(loc()); }
 \}           { return nnc::parser::make_CBRACE(loc()); }
 \(           { return nnc::parser::make_OPAREN(loc()); }

@@ -1,11 +1,14 @@
-architecture "x86_64";
-
+architecture = "x86_64";
+defaultCallingConvention = "::nnc::arch::x86_64::cconv::ccall";
+defaultEncoder = "::nnc::arch::x86_64::jumps";
 
 c_header [[
 #include <algorithm>
 #include <iostream>
 
 #include "compile/x86_64/types.hpp"
+#include "compile/x86_64/cconv.hpp"
+#include "compile/x86_64/encoding.hpp"
 ]];
 
 

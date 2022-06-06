@@ -14,9 +14,19 @@
 #include "op/reshape.hpp"
 #include "op/matmul.hpp"
 #include "compile/constant_propagation.hpp"
-#include "arch/x86_64/schedule.hpp"
+#include "compile/regalloc.hpp"
+#include "compile/linear_alloc.hpp"
+#include "compile/x86_64/manager.hpp"
+#include "invoke.hpp"
 
 #include <iostream>
+#include <sstream>
+#include <cstring>
+#include <cerrno>
+extern "C" {
+  #include <sys/mman.h>
+  #include <unistd.h>
+}
 
 int test1() {
   nnc::graph::Graph graph("Basic matmul");
@@ -78,6 +88,7 @@ int main(int argc, const char **argv) {
 //                                                bias ));
 //
 //  auto &expected(graph.addTensor< nnc::op::ToCategorical<float> >(labelInput, 10));
+//  graph.addOutput(expected);
 //
 //  graph.addOutput(labelInput);
 
@@ -86,8 +97,8 @@ int main(int argc, const char **argv) {
 //  auto &output(graph.addTensor<nnc::op::MatMul> (weights, flattened));
 //  graph.addOutput(output);
 
-  auto &a(graph.addTensor< nnc::ConstTensor<float, std::allocator<float>, 1024>>());
-  auto &b(graph.addTensor< nnc::ConstTensor<float, std::allocator<float>, 1024>>());
+  auto &a(graph.addInputTensor<float, 32>("a"));
+  auto &b(graph.addInputTensor<float, 32>("b"));
   auto &output(graph.addTensor<nnc::op::AddOp>(a, b));
   graph.addOutput(output);
 
@@ -111,26 +122,22 @@ int main(int argc, const char **argv) {
 
   std::cerr << "Compiling to RTL" << std::endl;
 
-  nnc::compile::RtlFunction fn("perceptron");
-  nnc::executor::CpuRtlTranslator translator(fn);
-  exec.visitAll(translator);
+  nnc::arch::x86_64::compile::DefaultManager mgr("simple.");
+  nnc::compile::RtlFunction &fn(mgr.translate(exec, "run"));
 
   fn.dump(std::cerr);
 
-  std::cerr << "Converting to SSA" << std::endl;
-  translator.finish();
-  fn.dump(std::cerr);
+  nnc::invoke::FunctionLibrary lib;
+  mgr.compile(lib, fn);
 
-  nnc::compile::ConstantPropagation prop(fn);
-  std::cerr << "Constant propagation" << std::endl;
-  prop();
-  fn.dump(std::cerr);
+  float input1[320], input2[320], result[320];
+  int testaeu[320];
+  std::fill(std::begin(input1), std::end(input1), 1);
+  std::fill(std::begin(input2), std::end(input2), 2);
+  std::fill(std::begin(result), std::end(result), 0);
+  lib["simple.run"].invoke<void>( input1, input2, result );
 
-  std::cerr << "Converting to scheduled IR" << std::endl;
-  nnc::arch::x86_64::schedule::scheduler amd64_scheduler(fn);
-  amd64_scheduler.scheduleEntryPoint(translator.entry());
-
-  fn.dump(std::cerr);
+  std::cerr << "Result is " << result[1] << " " << result[0] << std::endl;
 
   // No errors, now let's try compiling the graph into something we can actually do
 

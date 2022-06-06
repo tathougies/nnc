@@ -99,6 +99,10 @@ namespace nnc {
       auto &loop(m_loopHeads.back());
       m_loopHeads.pop_back();
 
+      auto oneVar(function().variable("one", loop.index()->type()));
+      std::uint32_t one(1);
+      curBlock()->emplace_op<compile::RtlConstantOp>(oneVar->type(), &one, sizeof(one), oneVar);
+      curBlock()->emplace_op<compile::RtlArithOp>(compile::RtlAdd, loop.index(), oneVar, loop.index());
       curBlock()->jump(loop.head()->name());
 
       auto loopEndBlock(function().block());

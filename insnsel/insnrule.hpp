@@ -20,6 +20,12 @@ public:
   virtual void visit(const std::string &name, bool isType) =0;
 };
 
+class OpMarker {
+public:
+  virtual void mark() =0;
+  virtual void skip() =0;
+};
+
 class InsnPattern;
 class InsnPatternVisitor {
 public:
@@ -48,6 +54,7 @@ public:
   void visitVars(InsnVariableVisitor &v) const;
   virtual void visitPatterns(InsnPatternVisitor &d) const =0;
   virtual void declMnemonicInterest(MnemonicInterestDeclarer &d) const =0;
+  virtual void markOps(OpMarker &d) const =0;
 
   virtual void modify(InsnRuleFactory &f);
 
@@ -62,6 +69,7 @@ public:
 
   virtual void visitPatterns(InsnPatternVisitor &d) const;
   virtual void declMnemonicInterest(MnemonicInterestDeclarer &d) const;
+  virtual void markOps(OpMarker &d) const;
 
   static InsnGen *make(InsnGen *a);
 
@@ -71,12 +79,26 @@ private:
   std::unique_ptr<InsnGen> m_optional;
 };
 
+class InsnRuleHiddenPattern : public InsnGen {
+public:
+  InsnRuleHiddenPattern(InsnGen *g);
+  virtual ~InsnRuleHiddenPattern();
+
+  virtual void visitPatterns(InsnPatternVisitor &d) const;
+  virtual void declMnemonicInterest(MnemonicInterestDeclarer &d) const;
+  virtual void markOps(OpMarker &d) const;
+
+private:
+  InsnGen *m_hidden;
+};
+
 class InsnRuleCompoundPattern : public InsnGen {
 public:
   virtual ~InsnRuleCompoundPattern();
 
   virtual void visitPatterns(InsnPatternVisitor &d) const;
   virtual void declMnemonicInterest(MnemonicInterestDeclarer &d) const;
+  virtual void markOps(OpMarker &d) const;
 
 protected:
   std::list<std::unique_ptr<InsnGen>> m_gens;
@@ -114,6 +136,7 @@ public:
 
   virtual void visitPatterns(InsnPatternVisitor &d) const;
   virtual void declMnemonicInterest(MnemonicInterestDeclarer &d) const;
+  virtual void markOps(OpMarker &d) const;
 
   virtual InsnRuleModifier *modifier();
 
@@ -172,7 +195,12 @@ private:
 class AsmInsnCall {
 public:
   AsmInsnCall(const std::string &mn);
+  AsmInsnCall(const template_string &ts);
   AsmInsnCall();
+
+  inline bool isTemplate() const { return m_mnemonic.empty(); }
+
+  inline const template_string &literal() const { return m_literal; }
 
   inline void mnemonic(const std::string &mn) { m_mnemonic = mn; }
   inline const std::string &mnemonic() const { return m_mnemonic; }
@@ -187,11 +215,17 @@ public:
   inline NncErrorContextStack &errorContext() { return m_context; }
   inline const NncErrorContextStack &errorContext() const { return m_context; }
 
+  inline void addCondition (const template_string &ts) { m_conds.emplace_back(ts); };
+  inline bool hasConds() const { return !m_conds.empty(); }
+  inline const std::list<template_string> &conds() const { return m_conds; }
+
 private:
   NncErrorContextStack m_context;
   std::string m_mnemonic;
-  std::list<template_string> m_args;
+  std::list<template_string> m_args, m_conds;
   std::map<std::string, template_string> m_namedArgs;
+
+  template_string m_literal;
 };
 
 class AsmInsnArg {
@@ -247,6 +281,9 @@ public:
   inline InsnRuleCondIterator conds() { return InsnRuleCondIterator(m_conds); }
   inline InsnRuleAsmIterator generated() { return InsnRuleAsmIterator(m_generate); }
 
+  typedef std::set<std::pair<std::string, std::string>> aliases_type;
+  inline const aliases_type &aliases() const { return m_aliases; }
+
   inline const template_string &extraPrivate() const { return m_extraPrivate; }
 
   inline InsnGen &pats() const { return *m_pats; }
@@ -260,6 +297,7 @@ protected:
   variables_type m_variables;
   conditions_type m_conds;
   template_string m_extraPrivate;
+  aliases_type m_aliases;
 
   std::unique_ptr<InsnGen> m_pats;
 
@@ -288,7 +326,11 @@ public:
   void declareVariable(const InsnVariable &v);
   void addCondition(const template_string &s);
   void setPattern(std::unique_ptr<InsnGen> &&gen);
+
   void addGeneratedInsn(AsmInsnCall &&c);
+  void addGeneratedInsn(const template_string &s);
+
+  void addAlias(const std::string &left, const std::string &right);
 
   InsnRule *build(const std::string &nm);
 };
@@ -324,6 +366,20 @@ public:
 
 private:
   template_string m_cond;
+};
+
+class InsnAliasDecl : public virtual InsnRuleModifier {
+public:
+  InsnAliasDecl(const std::string &left, const std::string &right);
+  virtual ~InsnAliasDecl();
+
+  virtual void modify(InsnRuleFactory &f);
+
+  inline const std::string &left() const { return m_left; }
+  inline const std::string &right() const { return m_right; }
+
+private:
+  std::string m_left, m_right;
 };
 
 class InsnCheckDecl : public virtual InsnRuleModifier {

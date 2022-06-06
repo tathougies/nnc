@@ -29,13 +29,15 @@ public:
   ArchDescBuilder();
 
   void setArchitecture(const std::string &name);
+  void param(const std::string &name, Literal &value);
   void includeFile(const std::string &fromFile, const std::string &filename);
   void includeFile(const std::filesystem::path &path);
 
   void addCHeader(const std::string &hdr);
 
+  RegisterFactory &getRegister(const std::string &name);
+
   void addRegisterClass(RegClass *regClass);
-  void addRegister(Register *reg);
   void addInsnRule(InsnRule *rule);
   void addInsn(Insn *i);
   void addCodeSection(const std::string &sectionName, const std::string &contents);
@@ -58,6 +60,8 @@ private:
   void generateApply(InsnRule &rule, const IndentedHeaderBase &hdr);
   void generateRuleMatchers(InsnRule &rule, IndentedHeaderBase &hdr);
   void generateInsnsImpl(const std::filesystem::path &outPath);
+  void generateRegistersHeader(const std::filesystem::path &outPath);
+  void generateRegistersImpl(const std::filesystem::path &outPath);
 
   void generateScheduleHeader(const std::filesystem::path &outPath);
   void generateInsnsHeader(const std::filesystem::path &outPath);
@@ -67,13 +71,14 @@ private:
   Insn &lookupInsn(const std::string &nm, const NncErrorContextStack &fromWhere);
 
   std::optional<std::string> m_name;
+  std::string m_defCallConv, m_opcodeBuilder, m_defaultInsnEncoder;
 
   std::list<std::string> m_cheaders;
   std::multimap<std::string, std::string> m_codeSections;
 
   lexers_type m_lexers;
 
-  std::map<std::string, std::unique_ptr<Register> > m_registers;
+  std::map<std::string, std::unique_ptr<RegisterFactory> > m_registers;
   std::map<std::string, std::unique_ptr<RegClass> > m_regClass;
   std::map<std::string, std::unique_ptr<CType> > m_cTypes;
 

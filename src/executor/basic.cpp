@@ -36,8 +36,8 @@ namespace nnc {
 
       fullIndex(ix);
 
-      if ( base->dims() < loopCount() )
-        ix.erase(ix.begin(), ix.end() - base->dims());
+      //      if ( base->dims() < loopCount() )
+      //        ix.erase(ix.begin(), ix.end() - base->dims());
 
       return index(base, ix);
     }

@@ -48,16 +48,15 @@ namespace nnc {
   }
 
   namespace compile {
-    class OperandPrinter : public virtual RtlOperandVisitor {
-    public:
-      OperandPrinter(RtlFunction &fn, std::ostream &out)
-        : RtlOperandVisitor(fn)
-        , m_out(out), m_first(true) {
-      }
-      ~OperandPrinter() {
-      };
+    OperandPrinter::OperandPrinter(RtlFunction &fn, std::ostream &out)
+      : RtlOperandVisitor(fn)
+      , m_out(out), m_first(true) {
+    }
 
-      virtual void operand(const std::string &name, std::shared_ptr<RtlVariable> var, bool input, bool output) {
+    OperandPrinter::~OperandPrinter() {
+    };
+
+    void OperandPrinter::operand(const std::string &name, std::shared_ptr<RtlVariable> var, bool input, bool output) {
         next();
         m_out << name;
         if ( input && output ) m_out << "<->";
@@ -67,7 +66,7 @@ namespace nnc {
         m_out << " " << var->name();
       }
 
-      virtual void operand(const std::string &name, std::shared_ptr<RtlType> ty, const void *l, std::size_t lsz) {
+    void OperandPrinter::operand(const std::string &name, std::shared_ptr<RtlType> ty, const void *l, std::size_t lsz) {
         next();
         m_out << name << "=<";
         ty->output(m_out);
@@ -79,21 +78,18 @@ namespace nnc {
         m_out << "]";
       }
 
-      virtual void operand(const std::string &name, const RtlBlockName &dest) {
-        next();
-        m_out << name << "=block" << dest.index();
-      }
+    void OperandPrinter::operand(const std::string &name, const RtlBlockName &dest) {
+      next();
+      m_out << name << "=block" << dest.index();
+    }
 
-    private:
-      void next() {
-        if ( m_first ) { m_first = false; }
-        else {
-          m_out << ", ";
-        }
+
+    void OperandPrinter::next() {
+      if ( m_first ) { m_first = false; }
+      else {
+        m_out << ", ";
       }
-      std::ostream &m_out;
-      bool m_first;
-    };
+    }
 
     RtlVariable::RtlVariable(const std::string &name,
                              std::shared_ptr<RtlType> type)
@@ -164,6 +160,10 @@ namespace nnc {
       else return nullptr;
     }
 
+    /* op builder */
+    RtlOpBuilder::~RtlOpBuilder() {
+    }
+
     /* Basic blocks */
 
     RtlBasicBlock::RtlBasicBlock(RtlFunction &fn, const RtlBlockName &nm)
@@ -173,11 +173,23 @@ namespace nnc {
     RtlBasicBlock::~RtlBasicBlock() {
     }
 
+    RtlFunction &RtlBasicBlock::function() const {
+      return m_function;
+    }
+
     RtlBasicBlock::iterator RtlBasicBlock::begin() {
       return m_ops.begin();
     }
 
     RtlBasicBlock::iterator RtlBasicBlock::end() {
+      return m_ops.end();
+    }
+
+    RtlBasicBlock::const_iterator RtlBasicBlock::begin() const {
+      return m_ops.begin();
+    }
+
+    RtlBasicBlock::const_iterator RtlBasicBlock::end() const {
       return m_ops.end();
     }
 
@@ -297,20 +309,61 @@ namespace nnc {
       m_ops.push_back(std::move(op));
     }
 
+    void RtlBasicBlock::clear() {
+      m_ops.clear();
+    }
+
     RtlJumpIterator RtlBasicBlock::jumps() {
-      return RtlJumpIterator(*this);
+      return RtlJumpIterator(*this, m_jumps.begin());
     }
 
-    RtlJumpIterator::RtlJumpIterator(RtlBasicBlock &blk)
-      : m_block(blk) {
+    RtlJumpIterator::RtlJumpIterator(RtlBasicBlock &blk, const underlying &u)
+      : m_block(blk), m_underlying(u), m_unconditional(blk.m_jumps.end()) {
+      if ( m_underlying != m_block.m_jumps.end() ) {
+        if ( ! m_underlying->first ) {
+          m_unconditional = m_underlying;
+          ++m_underlying;
+        }
+      }
     }
 
-    RtlJumpIterator::iterator RtlJumpIterator::begin() {
-      return m_block.m_jumps.begin();
+    RtlJumpIterator RtlJumpIterator::begin() {
+      return m_block.jumps();
     }
 
-    RtlJumpIterator::iterator RtlJumpIterator::end() {
-      return m_block.m_jumps.end();
+    RtlJumpIterator RtlJumpIterator::end() {
+      RtlJumpIterator r(m_block, m_block.m_jumps.end());;
+      return r;
+    }
+
+    bool RtlJumpIterator::operator==(const RtlJumpIterator &i) const {
+      return &m_block == &i.m_block && m_underlying == i.m_underlying &&
+        m_unconditional == i.m_unconditional;
+    }
+
+    RtlJumpIterator &RtlJumpIterator::operator++() {
+      if ( m_underlying != m_block.m_jumps.end() ) {
+        ++m_underlying;
+        if ( m_underlying != m_block.m_jumps.end() ) {
+          if ( ! m_underlying->first ) {
+            m_unconditional = m_underlying;
+            ++m_underlying;
+          }
+        }
+      } else if ( m_unconditional != m_block.m_jumps.end() ) {
+        m_unconditional = m_block.m_jumps.end();
+      }
+
+      return *this;
+    }
+
+    RtlJumpIterator::value_type &RtlJumpIterator::operator*() {
+      if ( m_underlying != m_block.m_jumps.end() ) { return *m_underlying; }
+      else return *m_unconditional;
+    }
+
+    RtlJumpIterator::value_type *RtlJumpIterator::operator->() {
+      return &operator*();
     }
 
     RtlBlockName RtlBlockName::first() {
@@ -482,6 +535,13 @@ namespace nnc {
 
     RtlBlockIterator RtlBlockIterator::end() const {
       return RtlBlockIterator(m_function, m_function.m_blocks.size());
+    }
+
+    void dumpOp(RtlOp &o, RtlFunction &f, std::ostream &out) {
+      OperandPrinter p(f, out);
+      out << o.mnemonic() << "(";
+      o.operands(p);
+      out << ")";
     }
   }
 }

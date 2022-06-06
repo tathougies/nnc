@@ -15,6 +15,26 @@ ctype modrm {
     }
   ]];
   visitOperands = "$member.visit(\"$name\", $visitor, $isInput, $isOutput);";
+  setter.ref = [[
+    $member = $member.withBase($new);
+  ]];
+  setter.index = [[
+    $member = $member.indexedBy($new);
+  ]];
+  acceptsRtlType = true;
+}
+
+ctype regmem {
+  name = "::nnc::arch::x86_64::types::regmem";
+  makeDefault = [[
+    if ( !$var.register() ) {
+      $member = $function.variable($name, $rtlType);
+    }
+  ]];
+  visitOperands = "$member.visit(\"$name\", $visitor, $isInput, $isOutput);";
+  setter.ref = [[
+    $member = ::nnc::arch::x86_64::types::regmem::memref($new);
+  ]];
   acceptsRtlType = true;
 }
 
@@ -28,4 +48,14 @@ ctype modrmimm {
   ]];
   visitOperands = "$member.visit(\"$name\", $visitor);";
   acceptsRtlType = true;
+  setter.ref = [[
+    if ( $member.isRegister() )
+      $member = $member.reg().withBase($new);
+    else
+      $member = ::nnc::arch::x86_64::types::modrmimm(::nnc::arch::x86_64::types::modrm::memref($new, $member.type()));
+  ]];
+  setter.index = [[
+    if ( $member.isRegister() )
+      $member = $member.reg().indexedBy($new);
+  ]];
 }

@@ -42,6 +42,9 @@ ParamDecl::~ParamDecl() {
   delete m_value;
 }
 
+Literal &ParamDecl::value() const { return *m_value; }
+const std::string &ParamDecl::name() const { return m_name; }
+
 void ParamDecl::modify(RegClassFactory &f) const {
   f.param(m_name, *m_value);
 }
@@ -121,4 +124,42 @@ SetNumberLiteral::~SetNumberLiteral() {
 void SetNumberLiteral::visit(std::uint32_t x) {
   seen();
   m_target = x;
+}
+
+RegMemberDeclarer::~RegMemberDeclarer() {
+}
+
+RangedRegMemberDeclarer::RangedRegMemberDeclarer() {
+}
+
+RangedRegMemberDeclarer::~RangedRegMemberDeclarer() {
+}
+
+void RangedRegMemberDeclarer::setName(const std::string &name) {
+  m_name = name;
+}
+
+void RangedRegMemberDeclarer::addRange(int start, int end) {
+  m_ranges.emplace_back(start, end);
+}
+
+void RangedRegMemberDeclarer::modify(RegMemberDecl &d) const {
+  for ( const auto &range: m_ranges ) {
+    for ( int i(range.first); i <= range.second; ++i ) {
+      std::stringstream nm;
+      nm << m_name << i;
+      d.addRegister(nm.str());
+    }
+  }
+}
+
+SingleRegMemberDeclarer::SingleRegMemberDeclarer(const std::string &nm)
+  : m_name(nm) {
+}
+
+SingleRegMemberDeclarer::~SingleRegMemberDeclarer() {
+}
+
+void SingleRegMemberDeclarer::modify(RegMemberDecl &d) const {
+  d.addRegister(m_name);
 }

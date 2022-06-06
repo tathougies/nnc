@@ -2,6 +2,7 @@
 #include <sstream>
 
 #include "ast.hpp"
+#include "archdesc.hpp"
 #include "error.hpp"
 
 RegClassBase::RegClassBase()
@@ -17,6 +18,11 @@ RegClassBase::RegClassBase(const RegClassBase &base)
 RegClass::RegClass(const std::string &clsNm, const RegClassBase &base)
   : RegClassBase(base),
     m_name(clsNm) {
+}
+
+void RegClass::ensureRegisters(ArchDescBuilder &b) const {
+  for ( const auto &nm: m_regNames )
+    b.getRegister(nm);
 }
 
 RegClassFactory::RegClassFactory() {

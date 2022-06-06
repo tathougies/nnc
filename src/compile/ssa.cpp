@@ -47,7 +47,6 @@ namespace nnc {
           // argument.
           auto var(varNameInBlock(nextBlock));
 
-
           for ( auto &jump: nextBlock->jumps() ) {
             if ( jump.second.to() == nextJump )
               jump.second.push_argument(var);
@@ -81,7 +80,7 @@ namespace nnc {
       }
 
       std::shared_ptr<RtlVariable> varNameInBlock(std::shared_ptr<RtlBasicBlock> blk) {
-        std::shared_ptr<RtlVariable> v(m_rewriter.aliases().varNameInBlock(blk->name(), m_var));
+        std::shared_ptr<RtlVariable> v(m_rewriter.aliases().varNameInBlock(blk->name(), m_var).initial);
 
         if ( v ) return v;
 
@@ -131,14 +130,19 @@ namespace nnc {
         if ( *origBlock == m_rewriter.block()->name() ) return;
 
         // Check if it's already rewritten
-        auto newVar(m_rewriter.aliases().varNameInBlock(m_rewriter.block()->name(), var));
+        auto newVar(m_rewriter.aliases().varNameInBlock(m_rewriter.block()->name(), var).initial);
         if ( !newVar ) {
           // Now we have to thread the variable through all edges that reach this block
           SsaThreader threader(m_rewriter, *origBlock, var);
           threader(m_rewriter.block());
 
-          newVar = m_rewriter.aliases().varNameInBlock(m_rewriter.block()->name(), var);
+          newVar = m_rewriter.aliases().varNameInBlock(m_rewriter.block()->name(), var).end;
+        } else if ( output ) {
+          // Copy the variable
+          newVar = function().variable(var->namePrefix(), var->type());
+          m_rewriter.aliases().replaceBlockAlias(m_rewriter.block()->name(), var, newVar);
         }
+
         m_newArgs.insert(std::make_pair(name, newVar));
       }
 
@@ -167,15 +171,35 @@ namespace nnc {
         SsaOpRewriter rewriter(m_block->function(), *this, *op);
         op->operands(rewriter);
       }
+
+      std::map< std::shared_ptr<RtlVariable>, RtlJump > newJumps;
+      for ( auto &jump : m_block->jumps() ) {
+        auto args(std::move(jump.second.arguments()));
+
+        RtlJump newJump(jump.second.to());
+
+        for ( const auto &arg : args ) {
+          auto newArg(m_aliases.nameAtBlockEnd(m_block->name(), arg));
+          newJump.push_argument(newArg);
+        }
+
+        RtlVariablePtr cond;
+        if ( jump.first )
+          cond = m_aliases.nameAtBlockEnd(m_block->name(), jump.first);
+
+        newJumps.emplace(cond, std::move(newJump));
+      }
+
+      m_block->replace_jumps(newJumps);
     }
 
     SsaMapper::SsaMapper() {
     }
 
-    std::shared_ptr<RtlVariable> SsaMapper::varNameInBlock(const RtlBlockName &blk,
-                                                           std::shared_ptr<RtlVariable> var) {
+    SsaAlias SsaMapper::varNameInBlock(const RtlBlockName &blk,
+                                       std::shared_ptr<RtlVariable> var) {
       auto it(m_aliases.find(std::make_pair(blk, var->repr())));
-      if ( it == m_aliases.end() ) return nullptr;
+      if ( it == m_aliases.end() ) return SsaAlias();
 
       return it->second;
     }
@@ -187,7 +211,47 @@ namespace nnc {
         throw std::runtime_error("bad block alias");
       }
 
-      m_aliases.insert(std::make_pair(key, aka));
+      m_aliases.insert(std::make_pair(key, SsaAlias(aka)));
+    }
+
+    void SsaMapper::replaceBlockAlias(const RtlBlockName &blk, std::shared_ptr<RtlVariable> subject,
+                                  std::shared_ptr<RtlVariable> aka) {
+      auto key(std::make_pair(blk, subject->repr()));
+      auto it(m_aliases.find(key));
+      if ( it == m_aliases.end() ) {
+        throw std::runtime_error("bad block alias for replacement");
+      }
+
+      m_transforms[std::make_pair(blk, it->second.end)] = aka;
+      it->second.end = aka;
+    }
+
+    RtlVariablePtr SsaMapper::nextName(const RtlBlockName &blk, RtlVariablePtr var) {
+      auto it(m_transforms.find(std::make_pair(blk, var)));
+      if ( it == m_transforms.end() ) return nullptr;
+      else return it->second;
+    }
+
+    RtlVariablePtr SsaMapper::nameAtBlockEnd(const RtlBlockName &blk, RtlVariablePtr var) {
+      while ( var ) {
+        auto nextVar(nextName(blk, var));
+        if ( !nextVar ) return var;
+
+        var = nextVar;
+      }
+      return nullptr;
+    }
+
+    SsaAlias::SsaAlias()
+      : initial(nullptr), end(nullptr) {
+    }
+
+    SsaAlias::SsaAlias(RtlVariablePtr i, RtlVariablePtr e)
+      : initial(i), end(e) {
+    }
+
+    SsaAlias::SsaAlias(RtlVariablePtr i)
+      : initial(i), end(i) {
     }
   }
 }

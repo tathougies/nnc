@@ -13,6 +13,7 @@
 #include "templatestring.hpp"
 
 class ArchDescLexer;
+class ArchDescBuilder;
 
 class RegType {
 public:
@@ -145,16 +146,6 @@ protected:
   std::set<std::string> m_clobbers;
 };
 
-class Register : public RegisterBase {
-public:
-  Register(const std::string &regNm, const RegisterBase &base);
-
-  inline const std::string &name() const { return m_name; }
-
-protected:
-  std::string m_name;
-};
-
 class RegisterFactory : public RegisterBase {
 public:
   RegisterFactory();
@@ -162,13 +153,20 @@ public:
   void param(const std::string &doc, const Literal &l);
 
   void addClobber(const std::string &regName);
-
-  Register *build(const std::string &regNm) const;
 };
 
 class RegisterModifier {
 public:
   virtual void modify(RegisterFactory &f) const =0;
+};
+
+class CompositeRegisterModifier : public virtual RegisterModifier {
+public:
+  virtual void modify(RegisterFactory &f) const;
+
+  void addModifier(RegisterModifier *m);
+private:
+  std::list<RegisterModifier *> m_mods;
 };
 
 class ClobberListDecl : public virtual RegisterModifier {
@@ -185,11 +183,18 @@ private:
 
 /* Regclass */
 class RegClassBase {
+protected:
+  std::set<std::string> m_regNames;
+
 public:
   RegClassBase();
 
   inline const std::string &doc() const { return m_doc; }
   inline std::uint32_t regCount() const { return m_count; }
+
+  typedef decltype(m_regNames)::iterator iterator;
+  inline iterator begin() { return m_regNames.begin(); }
+  inline iterator end() { return m_regNames.end(); }
 
 protected:
   RegClassBase(const RegClassBase &bs);
@@ -197,7 +202,6 @@ protected:
   std::string m_doc;
   std::uint32_t m_count;
 
-  std::set<std::string> m_regNames;
   std::set<RegType> m_regTypes;
 
   friend class RegClassFactory;
@@ -208,6 +212,8 @@ public:
   RegClass(const std::string &clsNm, const RegClassBase &base);
 
   inline const std::string &name() const { return m_name; }
+
+  void ensureRegisters(ArchDescBuilder &b) const;
 
 protected:
   std::string m_name;
@@ -242,6 +248,38 @@ public:
 
 private:
   std::list<std::string> m_names;
+};
+
+class RegMemberDeclarer {
+public:
+  virtual ~RegMemberDeclarer();
+  virtual void modify(RegMemberDecl &d) const =0;
+};
+
+class RangedRegMemberDeclarer : public RegMemberDeclarer {
+public:
+  RangedRegMemberDeclarer();
+  virtual ~RangedRegMemberDeclarer();
+
+  void setName(const std::string &name);
+  void addRange(int start, int end);
+
+  virtual void modify(RegMemberDecl &d) const override;
+
+private:
+  std::string m_name;
+  std::list< std::pair<int, int> > m_ranges;
+};
+
+class SingleRegMemberDeclarer : public RegMemberDeclarer {
+public:
+  SingleRegMemberDeclarer(const std::string &nm);
+  virtual ~SingleRegMemberDeclarer();
+
+  virtual void modify(RegMemberDecl &d) const override;
+
+private:
+  std::string m_name;
 };
 
 class RegClassTypeDecl : public virtual RegClassModifier {

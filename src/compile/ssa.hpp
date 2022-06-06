@@ -23,17 +23,33 @@ namespace nnc {
   }
 
   namespace compile {
+    struct SsaAlias {
+      SsaAlias(RtlVariablePtr i, RtlVariablePtr e);
+      SsaAlias(RtlVariablePtr i);
+      SsaAlias();
+      SsaAlias(const SsaAlias &a) =default;
+
+      RtlVariablePtr initial, end;
+    };
+
     class SsaMapper {
     public:
       SsaMapper();
 
-      std::shared_ptr<RtlVariable> varNameInBlock(const RtlBlockName &blk,
-                                                  std::shared_ptr<RtlVariable> var);
+      SsaAlias varNameInBlock(const RtlBlockName &blk,
+                              std::shared_ptr<RtlVariable> var);
       void addBlockAlias(const RtlBlockName &blk, std::shared_ptr<RtlVariable> subject,
                          std::shared_ptr<RtlVariable> aka);
+      void replaceBlockAlias(const RtlBlockName &blk, std::shared_ptr<RtlVariable> subject,
+                             std::shared_ptr<RtlVariable> aka);
+
+      RtlVariablePtr nextName(const RtlBlockName &blk,
+                              RtlVariablePtr var);
+      RtlVariablePtr nameAtBlockEnd(const RtlBlockName &blk, RtlVariablePtr var);
 
     private:
-      std::map< std::pair<RtlBlockName, std::shared_ptr<RtlVariable> >, std::shared_ptr<RtlVariable> > m_aliases;
+      std::map< std::pair<RtlBlockName, std::shared_ptr<RtlVariable> >, SsaAlias > m_aliases;
+      std::map< std::pair<RtlBlockName, RtlVariablePtr>, RtlVariablePtr > m_transforms;
     };
 
     class SsaRewriter {

@@ -105,9 +105,6 @@ namespace nnc::compile {
     : RtlOperandVisitor(fn), m_var(var), m_type(ty), m_const(value.size()) {
     m_const.resize(value.size());
     std::copy(value.begin(), value.end(), m_const.begin());
-    std::cerr << "MAke new constant";
-    std::copy(m_const.begin(), m_const.end(), std::ostream_iterator<int>(std::cerr, " "));
-    std::cerr << std::endl;
   }
 
   PropagatedConstant::~PropagatedConstant() {
@@ -130,7 +127,6 @@ namespace nnc::compile {
   void PropagatedConstant::operand(const std::string &name, const RtlBlockName &dest) { return; }
 
   std::span<const std::uint8_t> PropagatedConstant::data() const {
-    std::cerr << "prop gconst size " << m_const.size() << std::endl;
     return std::span<const std::uint8_t>(m_const.begin(), m_const.size());
   }
 
@@ -182,7 +178,7 @@ namespace nnc::compile {
           std::shared_ptr<RtlVariable> var(constant.var());
 
           if ( m_constants.find(var) != m_constants.end() ) {
-            std::cerr << "Warning: constant output written twice" << std::endl;
+            //std::cerr << "Warning: constant output written twice" << std::endl;
           } else {
             m_constants.emplace(var, std::move(constant));
           }
@@ -230,10 +226,6 @@ namespace nnc::compile {
               auto it(m_constsAdded.find(constant.first));
               if ( it == m_constsAdded.end() ) {
                 std::span<const std::uint8_t> d(constant.second.data());
-                std::cerr << "Emit constant " << constant.first->name() << " (size: " << d.size() << ") ";
-                std::copy(d.begin(), d.end(),
-                          std::ostream_iterator<int>(std::cerr, " "));
-                std::cerr << std::endl;
                 remainingOps.push_back(std::make_unique<RtlConstantOp>(constant.second.type(),
                                                                        constant.second.data().data(), constant.second.data().size(),
                                                                        constant.first));

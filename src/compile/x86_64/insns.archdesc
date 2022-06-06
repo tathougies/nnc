@@ -1,17 +1,48 @@
-insn xor(<->$a, $b);
-insn test($a, $b, ->[$sign], ->[$zero], ->[$parity]) {
-  var $sign : register(u1);
-  var $zero : register(u1);
-  var $parity : register(u1);
+opcodeBuilder = "::nnc::arch::x86_64::opcode_builder";
+
+insn xor(->$dst, $a, $b) {
+  var $a: modrm(u64, gp);
+  var $b: modrmimm(u64, gp);
+  var $dst: modrm(u64, gp);
+
+  intersect($dst, $a, gp);
+//  alias $a $dst; // a and dst must be the same
 }
+
+insn imul(->$dst, $a, $b) {
+  var $dst: modrm(i128, gp);
+  var $a: modrm(i64, gp);
+  var $b: modrmimm(i64, gp);
+
+  intersect($dst, $a, gp) if [[ !$b.isImmediate() ]];
+
+  constructor(register, register, modrm);
+  constructor(register, modrm, constant);
+}
+
+insn test($a, $b, ->[$sign], ->[$zero], ->[$parity]) {
+  var $sign : register(u1, sf);
+  var $zero : register(u1, zf);
+  var $parity : register(u1, pf);
+  var $lt: register(u1, lf);
+}
+
 insn cmp($a, $b, ->[$sign], ->[$carry]) {
-  var $sign : register(u1);
-  var $carry : register(u1);
+  var $sign : register(u1, sf);
+  var $carry : register(u1, cf);
+
+  var $a: modrm(u64, gp);
+  var $b: modrmimm(u64, gp);
+}
+
+insn lea(->$dst, $src) {
+  var $dst: register(u64, gp);
+  var $src: modrm(u64, gp);
 }
 
 insn mov(->$dst, $src) {
-  var $dst: modrm(u32);
-  var $src: modrmimm(u32);
+  var $dst: modrm(u32, gp);
+  var $src: modrmimm(u32, gp);
 
   constructor(modrm, register);
   constructor(register, modrm);
@@ -19,4 +50,66 @@ insn mov(->$dst, $src) {
 //  constructor(modrm, constant);
 }
 
-insn addps(->$dst, $a, $b);
+insn addss(->$dst, $a, $b) {
+  var $a: register(f32, avx);
+  var $b: modrm(f32, avx);
+  var $dst: register(f32, avx);
+
+  constructor(register, register, modrm);
+}
+
+insn movss(->$dst, $src) {
+  var $dst: modrm(f32, avx);
+  var $src: modrm(f32, avx);
+
+  constructor(register, modrm);
+  constructor(modrm, register);
+}
+
+insn inc(->$dst, $src) {
+  var $dst: modrm(u64, gp);
+  var $src: modrm(u64, gp);
+
+  intersect($dst, $src, gp);
+
+  cost = 800;
+}
+
+insn dec(->$dst, $src) {
+  var $dst: modrm(u64, gp);
+  var $src: modrm(u64, gp);
+
+  intersect($dst, $src, gp);
+
+  cost = 800;
+}
+
+insn sub(->$dst, $a, $b) {
+  var $dst: modrm(u64, gp);
+  var $a: modrm(u64, gp);
+  var $b: modrmimm(u64, gp);
+
+  constructor(register, register, modrmimm);
+  constructor(modrm, modrm, register);
+  constructor(modrm, modrm, constant);
+
+  intersect($dst, $a, gp);
+//  before {
+//    assign $a $dst; // Note that a should be moved into the destination
+//  }
+}
+
+insn add(->$dst, $a, $b) {
+  var $dst: modrm(u64, gp);
+  var $a: modrm(u64, gp);
+  var $b: modrmimm(u64, gp);
+
+  constructor(register, register, modrmimm);
+  constructor(modrm, modrm, register);
+  constructor(modrm, modrm, constant);
+
+  intersect($dst, $a, gp);
+//  before {
+//    assign $a $dst; // Note that a should be moved into the destination
+//  }
+}

@@ -13,7 +13,7 @@ namespace nnc {
     }
 
     const char *RtlOpArgDoesNotExist::what() const noexcept {
-      return "op arg does not exist";
+      return m_name.c_str(); //"op arg does not exist";
     }
   }
 
@@ -215,7 +215,7 @@ namespace nnc {
 
 #define NO_CONSTANT_PROPAGATION(OpName)                                 \
     void OpName::propagate(IConstantPropagator &p) const {              \
-      std::cerr << "Cannot do constant propagation for " #OpName << std::endl; \
+      return;                                                           \
     }
 
     NO_CONSTANT_PROPAGATION(RtlSignExtendOp);
@@ -258,13 +258,11 @@ namespace nnc {
 
         i = interpretAsInt(c.data());
 
-        std::cerr << "Propagate zero extending of " << i << std::endl;
         IntWidthVisitor v;
         dest()->type()->visit(v);
 
         if ( v.isInt() ) {
           std::size_t byteSz(((v.width() + 7) / 8));
-          std::cerr << "Propagation succeeded " << byteSz << std::endl;
           if ( byteSz <= sizeof(d) ) {
             std::span<std::uint8_t> dat(d, byteSz);
             p.setConstant(dest(), dest()->type(), dat);
@@ -324,7 +322,6 @@ namespace nnc {
 
       // TODO identity
       if ( !lc.data() || !rc.data() ) {
-        std::cerr << "Skip arith prop because an operand is not constant: " << arithMnemonic(op()) << std::endl;
         return;
       }
 
@@ -334,8 +331,6 @@ namespace nnc {
       right()->type()->visit(rty);
       if ( lty.isInt() && rty.isInt() &&
            lty.width() == rty.width() ) {
-        std::cerr << "Attempt to do integer arithmetic: " << arithMnemonic(op()) << std::endl;
-        std::cerr << "left: " << lty.isUnsigned() << " rty: " << rty.isUnsigned() << std::endl;
         if ( lty.signedness() == rty.signedness() ) {
           std::size_t byteSz((lty.width() + 7) / 8);
           if ( byteSz <= 8 ) {

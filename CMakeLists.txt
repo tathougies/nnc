@@ -36,10 +36,11 @@ macro(nnc_arch)
   endif()
 
   set(NNC_ARCH_DIR "${NNC_ARCH_OUTPUTDIR}/arch/${NNC_ARCH_NAME}")
-  set(NNC_ARCH_SRCS "${NNC_ARCH_DIR}/rules.cpp" "${NNC_ARCH_DIR}/insns.cpp")
+  set(NNC_ARCH_SRCS "${NNC_ARCH_DIR}/rules.cpp" "${NNC_ARCH_DIR}/insns.cpp" "${NNC_ARCH_DIR}/registers.cpp")
   set(NNC_ARCH_OUTPUTS
     "${NNC_ARCH_DIR}/schedule.hpp"
     "${NNC_ARCH_DIR}/insns.hpp"
+    "${NNC_ARCH_DIR}/registers.hpp"
     ${NNC_ARCH_SRCS})
   add_custom_command(OUTPUT "${NNC_ARCH_OUTPUTDIR}/arch.dep/${NNC_ARCH_NAME}.d"
     COMMAND ${PROJECT_BINARY_DIR}/archdescc --deps-prefix ${NNC_ARCH_DIR} -M ${NNC_ARCH_ARCHDESC} '${NNC_ARCH_OUTPUTDIR}/arch.dep/${NNC_ARCH_NAME}.d'
@@ -61,18 +62,23 @@ NNC_ARCH(NAME "x86_64"
 
 add_library(nnc SHARED src/tensor.cpp src/graph.cpp src/exception.cpp
   src/primop.cpp src/error_reporter.cpp src/categorical.cpp src/errors.cpp
-  src/castop.cpp src/graphviz.cpp src/executor.cpp src/executor/basic.cpp
+  src/castop.cpp src/graphviz.cpp src/invoke.cpp
+
+  src/executor.cpp src/executor/basic.cpp
 
   src/cpu/cpu.cpp src/cpu/cpu_op.cpp src/cpu/rtl.cpp
 
   src/op/reshape.cpp src/op/matmul.cpp
 
   src/compile/rtl_types.cpp src/compile/rtl.cpp src/compile/rtl_ops.cpp
-  src/compile/constant_propagation.cpp src/compile/unused.cpp
+  src/compile/constant_propagation.cpp src/compile/unused.cpp src/compile/registers.cpp
+  src/compile/cconv.cpp src/compile/regalloc.cpp src/compile/regset.cpp src/compile/encoding.cpp
+  src/compile/manager.cpp
 
-  src/compile/x86_64.cpp src/compile/x86_64/types.cpp
+  src/compile/x86_64.cpp src/compile/x86_64/types.cpp src/compile/x86_64/cconv.cpp
+  src/compile/x86_64/encoding.cpp src/compile/x86_64/manager.cpp
 
-  src/compile/controlflow.cpp src/compile/dataflow.cpp
+  src/compile/controlflow.cpp src/compile/dataflow.cpp src/compile/linear_alloc.cpp
   src/compile/ssa.cpp src/compile/genericschedule.cpp src/compile/insnsel.cpp ${NNC_ARCH_SOURCE})
 set_property(TARGET nnc PROPERTY CXX_STANDARD 20)
 target_include_directories(nnc PRIVATE ${NNC_ARCH_INCLUDE})

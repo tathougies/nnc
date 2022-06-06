@@ -42,7 +42,7 @@
 
 
 // Unqualified %code blocks.
-#line 161 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+#line 172 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
 
   #define yylex(x) lexer.lex()
 
@@ -231,6 +231,10 @@ namespace nnc {
         value.YY_MOVE_OR_COPY< ClobberListDecl * > (YY_MOVE (that.value));
         break;
 
+      case symbol_kind::S_registerBody: // registerBody
+        value.YY_MOVE_OR_COPY< CompositeRegisterModifier * > (YY_MOVE (that.value));
+        break;
+
       case symbol_kind::S_constructorDecl: // constructorDecl
       case symbol_kind::S_constructorArgList: // constructorArgList
       case symbol_kind::S_moreConstructorArgs: // moreConstructorArgs
@@ -328,12 +332,21 @@ namespace nnc {
         value.YY_MOVE_OR_COPY< InsnVariable::Type > (YY_MOVE (that.value));
         break;
 
+      case symbol_kind::S_intersectDecl: // intersectDecl
+        value.YY_MOVE_OR_COPY< IntersectDecl * > (YY_MOVE (that.value));
+        break;
+
       case symbol_kind::S_literal: // literal
         value.YY_MOVE_OR_COPY< Literal * > (YY_MOVE (that.value));
         break;
 
       case symbol_kind::S_paramDecl: // paramDecl
         value.YY_MOVE_OR_COPY< ParamDecl * > (YY_MOVE (that.value));
+        break;
+
+      case symbol_kind::S_regclassRange: // regclassRange
+      case symbol_kind::S_regclassRangeMore: // regclassRangeMore
+        value.YY_MOVE_OR_COPY< RangedRegMemberDeclarer * > (YY_MOVE (that.value));
         break;
 
       case symbol_kind::S_regclassBody: // regclassBody
@@ -349,28 +362,40 @@ namespace nnc {
         break;
 
       case symbol_kind::S_regclassRegDecl: // regclassRegDecl
+      case symbol_kind::S_regclassRegDeclMore: // regclassRegDeclMore
         value.YY_MOVE_OR_COPY< RegMemberDecl * > (YY_MOVE (that.value));
+        break;
+
+      case symbol_kind::S_regclassRegDeclMember: // regclassRegDeclMember
+        value.YY_MOVE_OR_COPY< RegMemberDeclarer * > (YY_MOVE (that.value));
         break;
 
       case symbol_kind::S_regtype: // regtype
         value.YY_MOVE_OR_COPY< RegType > (YY_MOVE (that.value));
         break;
 
-      case symbol_kind::S_registerBody: // registerBody
-        value.YY_MOVE_OR_COPY< RegisterFactory * > (YY_MOVE (that.value));
-        break;
-
       case symbol_kind::S_regBodyDecl: // regBodyDecl
         value.YY_MOVE_OR_COPY< RegisterModifier * > (YY_MOVE (that.value));
         break;
 
+      case symbol_kind::S_optionalPatternSemicolon: // optionalPatternSemicolon
       case symbol_kind::S_optionalPattern: // optionalPattern
         value.YY_MOVE_OR_COPY< bool > (YY_MOVE (that.value));
+        break;
+
+      case symbol_kind::S_postfixIfDecl: // postfixIfDecl
+      case symbol_kind::S_asmConditional: // asmConditional
+        value.YY_MOVE_OR_COPY< std::optional<template_string> > (YY_MOVE (that.value));
+        break;
+
+      case symbol_kind::S_regclassRangeElem: // regclassRangeElem
+        value.YY_MOVE_OR_COPY< std::pair<int, int>  > (YY_MOVE (that.value));
         break;
 
       case symbol_kind::S_STRING: // STRING
       case symbol_kind::S_ID: // ID
       case symbol_kind::S_VARNAME: // VARNAME
+      case symbol_kind::S_optionalRegClass: // optionalRegClass
       case symbol_kind::S_insnArgTypePattern: // insnArgTypePattern
       case symbol_kind::S_insnArgExprPattern: // insnArgExprPattern
         value.YY_MOVE_OR_COPY< std::string > (YY_MOVE (that.value));
@@ -419,6 +444,10 @@ namespace nnc {
 
       case symbol_kind::S_clobberRegisterList: // clobberRegisterList
         value.move< ClobberListDecl * > (YY_MOVE (that.value));
+        break;
+
+      case symbol_kind::S_registerBody: // registerBody
+        value.move< CompositeRegisterModifier * > (YY_MOVE (that.value));
         break;
 
       case symbol_kind::S_constructorDecl: // constructorDecl
@@ -518,12 +547,21 @@ namespace nnc {
         value.move< InsnVariable::Type > (YY_MOVE (that.value));
         break;
 
+      case symbol_kind::S_intersectDecl: // intersectDecl
+        value.move< IntersectDecl * > (YY_MOVE (that.value));
+        break;
+
       case symbol_kind::S_literal: // literal
         value.move< Literal * > (YY_MOVE (that.value));
         break;
 
       case symbol_kind::S_paramDecl: // paramDecl
         value.move< ParamDecl * > (YY_MOVE (that.value));
+        break;
+
+      case symbol_kind::S_regclassRange: // regclassRange
+      case symbol_kind::S_regclassRangeMore: // regclassRangeMore
+        value.move< RangedRegMemberDeclarer * > (YY_MOVE (that.value));
         break;
 
       case symbol_kind::S_regclassBody: // regclassBody
@@ -539,28 +577,40 @@ namespace nnc {
         break;
 
       case symbol_kind::S_regclassRegDecl: // regclassRegDecl
+      case symbol_kind::S_regclassRegDeclMore: // regclassRegDeclMore
         value.move< RegMemberDecl * > (YY_MOVE (that.value));
+        break;
+
+      case symbol_kind::S_regclassRegDeclMember: // regclassRegDeclMember
+        value.move< RegMemberDeclarer * > (YY_MOVE (that.value));
         break;
 
       case symbol_kind::S_regtype: // regtype
         value.move< RegType > (YY_MOVE (that.value));
         break;
 
-      case symbol_kind::S_registerBody: // registerBody
-        value.move< RegisterFactory * > (YY_MOVE (that.value));
-        break;
-
       case symbol_kind::S_regBodyDecl: // regBodyDecl
         value.move< RegisterModifier * > (YY_MOVE (that.value));
         break;
 
+      case symbol_kind::S_optionalPatternSemicolon: // optionalPatternSemicolon
       case symbol_kind::S_optionalPattern: // optionalPattern
         value.move< bool > (YY_MOVE (that.value));
+        break;
+
+      case symbol_kind::S_postfixIfDecl: // postfixIfDecl
+      case symbol_kind::S_asmConditional: // asmConditional
+        value.move< std::optional<template_string> > (YY_MOVE (that.value));
+        break;
+
+      case symbol_kind::S_regclassRangeElem: // regclassRangeElem
+        value.move< std::pair<int, int>  > (YY_MOVE (that.value));
         break;
 
       case symbol_kind::S_STRING: // STRING
       case symbol_kind::S_ID: // ID
       case symbol_kind::S_VARNAME: // VARNAME
+      case symbol_kind::S_optionalRegClass: // optionalRegClass
       case symbol_kind::S_insnArgTypePattern: // insnArgTypePattern
       case symbol_kind::S_insnArgExprPattern: // insnArgExprPattern
         value.move< std::string > (YY_MOVE (that.value));
@@ -609,6 +659,10 @@ namespace nnc {
 
       case symbol_kind::S_clobberRegisterList: // clobberRegisterList
         value.copy< ClobberListDecl * > (that.value);
+        break;
+
+      case symbol_kind::S_registerBody: // registerBody
+        value.copy< CompositeRegisterModifier * > (that.value);
         break;
 
       case symbol_kind::S_constructorDecl: // constructorDecl
@@ -708,12 +762,21 @@ namespace nnc {
         value.copy< InsnVariable::Type > (that.value);
         break;
 
+      case symbol_kind::S_intersectDecl: // intersectDecl
+        value.copy< IntersectDecl * > (that.value);
+        break;
+
       case symbol_kind::S_literal: // literal
         value.copy< Literal * > (that.value);
         break;
 
       case symbol_kind::S_paramDecl: // paramDecl
         value.copy< ParamDecl * > (that.value);
+        break;
+
+      case symbol_kind::S_regclassRange: // regclassRange
+      case symbol_kind::S_regclassRangeMore: // regclassRangeMore
+        value.copy< RangedRegMemberDeclarer * > (that.value);
         break;
 
       case symbol_kind::S_regclassBody: // regclassBody
@@ -729,28 +792,40 @@ namespace nnc {
         break;
 
       case symbol_kind::S_regclassRegDecl: // regclassRegDecl
+      case symbol_kind::S_regclassRegDeclMore: // regclassRegDeclMore
         value.copy< RegMemberDecl * > (that.value);
+        break;
+
+      case symbol_kind::S_regclassRegDeclMember: // regclassRegDeclMember
+        value.copy< RegMemberDeclarer * > (that.value);
         break;
 
       case symbol_kind::S_regtype: // regtype
         value.copy< RegType > (that.value);
         break;
 
-      case symbol_kind::S_registerBody: // registerBody
-        value.copy< RegisterFactory * > (that.value);
-        break;
-
       case symbol_kind::S_regBodyDecl: // regBodyDecl
         value.copy< RegisterModifier * > (that.value);
         break;
 
+      case symbol_kind::S_optionalPatternSemicolon: // optionalPatternSemicolon
       case symbol_kind::S_optionalPattern: // optionalPattern
         value.copy< bool > (that.value);
+        break;
+
+      case symbol_kind::S_postfixIfDecl: // postfixIfDecl
+      case symbol_kind::S_asmConditional: // asmConditional
+        value.copy< std::optional<template_string> > (that.value);
+        break;
+
+      case symbol_kind::S_regclassRangeElem: // regclassRangeElem
+        value.copy< std::pair<int, int>  > (that.value);
         break;
 
       case symbol_kind::S_STRING: // STRING
       case symbol_kind::S_ID: // ID
       case symbol_kind::S_VARNAME: // VARNAME
+      case symbol_kind::S_optionalRegClass: // optionalRegClass
       case symbol_kind::S_insnArgTypePattern: // insnArgTypePattern
       case symbol_kind::S_insnArgExprPattern: // insnArgExprPattern
         value.copy< std::string > (that.value);
@@ -798,6 +873,10 @@ namespace nnc {
 
       case symbol_kind::S_clobberRegisterList: // clobberRegisterList
         value.move< ClobberListDecl * > (that.value);
+        break;
+
+      case symbol_kind::S_registerBody: // registerBody
+        value.move< CompositeRegisterModifier * > (that.value);
         break;
 
       case symbol_kind::S_constructorDecl: // constructorDecl
@@ -897,12 +976,21 @@ namespace nnc {
         value.move< InsnVariable::Type > (that.value);
         break;
 
+      case symbol_kind::S_intersectDecl: // intersectDecl
+        value.move< IntersectDecl * > (that.value);
+        break;
+
       case symbol_kind::S_literal: // literal
         value.move< Literal * > (that.value);
         break;
 
       case symbol_kind::S_paramDecl: // paramDecl
         value.move< ParamDecl * > (that.value);
+        break;
+
+      case symbol_kind::S_regclassRange: // regclassRange
+      case symbol_kind::S_regclassRangeMore: // regclassRangeMore
+        value.move< RangedRegMemberDeclarer * > (that.value);
         break;
 
       case symbol_kind::S_regclassBody: // regclassBody
@@ -918,28 +1006,40 @@ namespace nnc {
         break;
 
       case symbol_kind::S_regclassRegDecl: // regclassRegDecl
+      case symbol_kind::S_regclassRegDeclMore: // regclassRegDeclMore
         value.move< RegMemberDecl * > (that.value);
+        break;
+
+      case symbol_kind::S_regclassRegDeclMember: // regclassRegDeclMember
+        value.move< RegMemberDeclarer * > (that.value);
         break;
 
       case symbol_kind::S_regtype: // regtype
         value.move< RegType > (that.value);
         break;
 
-      case symbol_kind::S_registerBody: // registerBody
-        value.move< RegisterFactory * > (that.value);
-        break;
-
       case symbol_kind::S_regBodyDecl: // regBodyDecl
         value.move< RegisterModifier * > (that.value);
         break;
 
+      case symbol_kind::S_optionalPatternSemicolon: // optionalPatternSemicolon
       case symbol_kind::S_optionalPattern: // optionalPattern
         value.move< bool > (that.value);
+        break;
+
+      case symbol_kind::S_postfixIfDecl: // postfixIfDecl
+      case symbol_kind::S_asmConditional: // asmConditional
+        value.move< std::optional<template_string> > (that.value);
+        break;
+
+      case symbol_kind::S_regclassRangeElem: // regclassRangeElem
+        value.move< std::pair<int, int>  > (that.value);
         break;
 
       case symbol_kind::S_STRING: // STRING
       case symbol_kind::S_ID: // ID
       case symbol_kind::S_VARNAME: // VARNAME
+      case symbol_kind::S_optionalRegClass: // optionalRegClass
       case symbol_kind::S_insnArgTypePattern: // insnArgTypePattern
       case symbol_kind::S_insnArgExprPattern: // insnArgExprPattern
         value.move< std::string > (that.value);
@@ -1244,6 +1344,10 @@ namespace nnc {
         yylhs.value.emplace< ClobberListDecl * > ();
         break;
 
+      case symbol_kind::S_registerBody: // registerBody
+        yylhs.value.emplace< CompositeRegisterModifier * > ();
+        break;
+
       case symbol_kind::S_constructorDecl: // constructorDecl
       case symbol_kind::S_constructorArgList: // constructorArgList
       case symbol_kind::S_moreConstructorArgs: // moreConstructorArgs
@@ -1341,12 +1445,21 @@ namespace nnc {
         yylhs.value.emplace< InsnVariable::Type > ();
         break;
 
+      case symbol_kind::S_intersectDecl: // intersectDecl
+        yylhs.value.emplace< IntersectDecl * > ();
+        break;
+
       case symbol_kind::S_literal: // literal
         yylhs.value.emplace< Literal * > ();
         break;
 
       case symbol_kind::S_paramDecl: // paramDecl
         yylhs.value.emplace< ParamDecl * > ();
+        break;
+
+      case symbol_kind::S_regclassRange: // regclassRange
+      case symbol_kind::S_regclassRangeMore: // regclassRangeMore
+        yylhs.value.emplace< RangedRegMemberDeclarer * > ();
         break;
 
       case symbol_kind::S_regclassBody: // regclassBody
@@ -1362,28 +1475,40 @@ namespace nnc {
         break;
 
       case symbol_kind::S_regclassRegDecl: // regclassRegDecl
+      case symbol_kind::S_regclassRegDeclMore: // regclassRegDeclMore
         yylhs.value.emplace< RegMemberDecl * > ();
+        break;
+
+      case symbol_kind::S_regclassRegDeclMember: // regclassRegDeclMember
+        yylhs.value.emplace< RegMemberDeclarer * > ();
         break;
 
       case symbol_kind::S_regtype: // regtype
         yylhs.value.emplace< RegType > ();
         break;
 
-      case symbol_kind::S_registerBody: // registerBody
-        yylhs.value.emplace< RegisterFactory * > ();
-        break;
-
       case symbol_kind::S_regBodyDecl: // regBodyDecl
         yylhs.value.emplace< RegisterModifier * > ();
         break;
 
+      case symbol_kind::S_optionalPatternSemicolon: // optionalPatternSemicolon
       case symbol_kind::S_optionalPattern: // optionalPattern
         yylhs.value.emplace< bool > ();
+        break;
+
+      case symbol_kind::S_postfixIfDecl: // postfixIfDecl
+      case symbol_kind::S_asmConditional: // asmConditional
+        yylhs.value.emplace< std::optional<template_string> > ();
+        break;
+
+      case symbol_kind::S_regclassRangeElem: // regclassRangeElem
+        yylhs.value.emplace< std::pair<int, int>  > ();
         break;
 
       case symbol_kind::S_STRING: // STRING
       case symbol_kind::S_ID: // ID
       case symbol_kind::S_VARNAME: // VARNAME
+      case symbol_kind::S_optionalRegClass: // optionalRegClass
       case symbol_kind::S_insnArgTypePattern: // insnArgTypePattern
       case symbol_kind::S_insnArgExprPattern: // insnArgExprPattern
         yylhs.value.emplace< std::string > ();
@@ -1417,209 +1542,263 @@ namespace nnc {
         {
           switch (yyn)
             {
-  case 14: // ctypeDecl: CTYPE ID OBRACE ctypeBody
+  case 5: // decl: paramDecl
 #line 183 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+                          { builder.param(yystack_[0].value.as < ParamDecl * > ()->name(), yystack_[0].value.as < ParamDecl * > ()->value()); delete yystack_[0].value.as < ParamDecl * > (); }
+#line 1549 "./insnsel/parser.cpp"
+    break;
+
+  case 14: // ctypeDecl: CTYPE ID OBRACE ctypeBody
+#line 194 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                                                       {
                     builder.addCType(yystack_[2].value.as < std::string > (), yystack_[0].value.as < CType * > ());
                 }
-#line 1426 "./insnsel/parser.cpp"
+#line 1557 "./insnsel/parser.cpp"
     break;
 
   case 15: // ctypeBody: ctypeBodyDecl ctypeBody
-#line 188 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+#line 199 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                                                     {
                     yystack_[1].value.as < CTypeModifier * > ()->modify(*yystack_[0].value.as < CType * > ());
                     delete yystack_[1].value.as < CTypeModifier * > ();
                     yylhs.value.as < CType * > () = yystack_[0].value.as < CType * > ();
                 }
-#line 1436 "./insnsel/parser.cpp"
+#line 1567 "./insnsel/parser.cpp"
     break;
 
   case 16: // ctypeBody: cbraceSemi
-#line 193 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+#line 204 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                            { yylhs.value.as < CType * > () = new CType(); }
-#line 1442 "./insnsel/parser.cpp"
+#line 1573 "./insnsel/parser.cpp"
     break;
 
   case 17: // ctypeBodyDecl: paramDecl
-#line 196 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+#line 207 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                                  { yylhs.value.as < CTypeModifier * > () = static_cast<CTypeModifier *>(yystack_[0].value.as < ParamDecl * > ()); }
-#line 1448 "./insnsel/parser.cpp"
+#line 1579 "./insnsel/parser.cpp"
     break;
 
   case 18: // codeDecl: CODE STRING STRING SEMICOLON
-#line 200 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+#line 211 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                 {
                   builder.addCodeSection(yystack_[2].value.as < std::string > (), yystack_[1].value.as < std::string > ());
                 }
-#line 1456 "./insnsel/parser.cpp"
+#line 1587 "./insnsel/parser.cpp"
     break;
 
   case 21: // cheaderDecl: CHEADER STRING SEMICOLON
-#line 209 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+#line 220 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                                          {
                     builder.addCHeader(yystack_[1].value.as < std::string > ());
                 }
-#line 1464 "./insnsel/parser.cpp"
+#line 1595 "./insnsel/parser.cpp"
     break;
 
-  case 22: // architectureDecl: ARCHITECTURE STRING SEMICOLON
-#line 215 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
-                                              {
-                    builder.setArchitecture(yystack_[1].value.as < std::string > ());
-                }
-#line 1472 "./insnsel/parser.cpp"
-    break;
-
-  case 23: // includeDecl: INCLUDE STRING SEMICOLON
-#line 220 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 22: // includeDecl: INCLUDE STRING SEMICOLON
+#line 225 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                                          {
                     NncErrorLocation l(yystack_[1].location, "Included from here");
                     builder.includeFile(lexer.filename(), yystack_[1].value.as < std::string > ());
                 }
-#line 1481 "./insnsel/parser.cpp"
+#line 1604 "./insnsel/parser.cpp"
     break;
 
-  case 24: // regclassDecl: REGCLASS ID OBRACE regclassBody
-#line 227 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 23: // regclassDecl: REGCLASS ID OBRACE regclassBody
+#line 232 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                                                 {
                     auto newRegClass(yystack_[0].value.as < RegClassFactory * > ()->build(yystack_[2].value.as < std::string > ()));
                     delete yystack_[0].value.as < RegClassFactory * > ();
                     builder.addRegisterClass(newRegClass);
                 }
-#line 1491 "./insnsel/parser.cpp"
+#line 1614 "./insnsel/parser.cpp"
     break;
 
-  case 25: // registerDecl: REGISTER ID OBRACE registerBody
-#line 234 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
-                                                 {
-                     auto newRegister(yystack_[0].value.as < RegisterFactory * > ()->build(yystack_[2].value.as < std::string > ()));
-                     delete yystack_[0].value.as < RegisterFactory * > ();
-
-                     builder.addRegister(newRegister);
+  case 24: // registerDecl: REGISTER ID OBRACE registerBody
+#line 239 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+                                                          {
+                     yystack_[0].value.as < CompositeRegisterModifier * > ()->modify(builder.getRegister(yystack_[2].value.as < std::string > ()));
+                     delete yystack_[0].value.as < CompositeRegisterModifier * > ();
                  }
-#line 1502 "./insnsel/parser.cpp"
+#line 1623 "./insnsel/parser.cpp"
     break;
 
-  case 26: // registerBody: cbraceSemi
-#line 242 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
-                           { yylhs.value.as < RegisterFactory * > () = new RegisterFactory(); }
-#line 1508 "./insnsel/parser.cpp"
+  case 25: // registerBody: cbraceSemi
+#line 245 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+                           { yylhs.value.as < CompositeRegisterModifier * > () = new CompositeRegisterModifier(); }
+#line 1629 "./insnsel/parser.cpp"
     break;
 
-  case 27: // registerBody: regBodyDecl registerBody
-#line 243 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
-                                         {
-                  yystack_[1].value.as < RegisterModifier * > ()->modify(*yystack_[0].value.as < RegisterFactory * > ());
-                  delete yystack_[1].value.as < RegisterModifier * > ();
-                  yylhs.value.as < RegisterFactory * > () = yystack_[0].value.as < RegisterFactory * > ();
+  case 26: // registerBody: regBodyDecl registerBody
+#line 246 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+                                               {
+                  yystack_[0].value.as < CompositeRegisterModifier * > ()->addModifier(yystack_[1].value.as < RegisterModifier * > ());
+                  yylhs.value.as < CompositeRegisterModifier * > () = yystack_[0].value.as < CompositeRegisterModifier * > ();
                 }
-#line 1518 "./insnsel/parser.cpp"
+#line 1638 "./insnsel/parser.cpp"
     break;
 
-  case 28: // regBodyDecl: CLOBBERS clobberRegisterList SEMICOLON
-#line 250 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 27: // regBodyDecl: CLOBBERS clobberRegisterList SEMICOLON
+#line 252 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                                                         { yylhs.value.as < RegisterModifier * > () = static_cast<RegisterModifier *>(yystack_[1].value.as < ClobberListDecl * > ()); }
-#line 1524 "./insnsel/parser.cpp"
+#line 1644 "./insnsel/parser.cpp"
     break;
 
-  case 29: // clobberRegisterList: ID COMMA clobberRegisterList
-#line 255 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 28: // clobberRegisterList: ID COMMA clobberRegisterList
+#line 257 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                 {
                   yystack_[0].value.as < ClobberListDecl * > ()->addRegister(yystack_[2].value.as < std::string > ());
                   yylhs.value.as < ClobberListDecl * > () = yystack_[0].value.as < ClobberListDecl * > ();
                 }
-#line 1533 "./insnsel/parser.cpp"
+#line 1653 "./insnsel/parser.cpp"
     break;
 
-  case 30: // clobberRegisterList: ID
-#line 259 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 29: // clobberRegisterList: ID
+#line 261 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                    {
                     yylhs.value.as < ClobberListDecl * > () = new ClobberListDecl();
                     yylhs.value.as < ClobberListDecl * > ()->addRegister(yystack_[0].value.as < std::string > ());
                 }
-#line 1542 "./insnsel/parser.cpp"
+#line 1662 "./insnsel/parser.cpp"
     break;
 
-  case 31: // regclassBody: cbraceSemi
-#line 265 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 30: // regclassBody: cbraceSemi
+#line 267 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                            { yylhs.value.as < RegClassFactory * > () = new RegClassFactory(); }
-#line 1548 "./insnsel/parser.cpp"
+#line 1668 "./insnsel/parser.cpp"
     break;
 
-  case 32: // regclassBody: regclassBodyDecl regclassBody
-#line 266 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 31: // regclassBody: regclassBodyDecl regclassBody
+#line 268 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                                               {
                   yystack_[1].value.as < RegClassModifier * > ()->modify(*(yystack_[0].value.as < RegClassFactory * > ()));
                   delete yystack_[1].value.as < RegClassModifier * > ();
                   yylhs.value.as < RegClassFactory * > () = yystack_[0].value.as < RegClassFactory * > ();
                 }
-#line 1558 "./insnsel/parser.cpp"
+#line 1678 "./insnsel/parser.cpp"
     break;
 
-  case 33: // regclassBodyDecl: paramDecl
-#line 273 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
-                              { yylhs.value.as < RegClassModifier * > () = static_cast<RegClassModifier *>(yystack_[0].value.as < ParamDecl * > ()); }
-#line 1564 "./insnsel/parser.cpp"
-    break;
-
-  case 34: // regclassBodyDecl: REGISTER regclassRegDecl SEMICOLON
-#line 274 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
-                                                       { yylhs.value.as < RegClassModifier * > () = static_cast<RegClassModifier *>(yystack_[1].value.as < RegMemberDecl * > ()); }
-#line 1570 "./insnsel/parser.cpp"
-    break;
-
-  case 35: // regclassBodyDecl: TYPE regclassTypeDecl SEMICOLON
+  case 32: // regclassBodyDecl: paramDecl
 #line 275 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
-                                                    { yylhs.value.as < RegClassModifier * > () =static_cast<RegClassModifier *>(yystack_[1].value.as < RegClassTypeDecl * > ()); }
-#line 1576 "./insnsel/parser.cpp"
+                              { yylhs.value.as < RegClassModifier * > () = static_cast<RegClassModifier *>(yystack_[0].value.as < ParamDecl * > ()); }
+#line 1684 "./insnsel/parser.cpp"
     break;
 
-  case 36: // regclassRegDecl: ID COMMA regclassRegDecl
-#line 280 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 33: // regclassBodyDecl: REGISTER regclassRegDecl SEMICOLON
+#line 276 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+                                                       { yylhs.value.as < RegClassModifier * > () = static_cast<RegClassModifier *>(yystack_[1].value.as < RegMemberDecl * > ()); }
+#line 1690 "./insnsel/parser.cpp"
+    break;
+
+  case 34: // regclassBodyDecl: TYPE regclassTypeDecl SEMICOLON
+#line 277 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+                                                    { yylhs.value.as < RegClassModifier * > () =static_cast<RegClassModifier *>(yystack_[1].value.as < RegClassTypeDecl * > ()); }
+#line 1696 "./insnsel/parser.cpp"
+    break;
+
+  case 35: // regclassRegDecl: regclassRegDeclMember regclassRegDeclMore
+#line 281 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                 {
-                    yystack_[0].value.as < RegMemberDecl * > ()->addRegister(yystack_[2].value.as < std::string > ());
+                    yystack_[1].value.as < RegMemberDeclarer * > ()->modify(*yystack_[0].value.as < RegMemberDecl * > ());
+                    delete yystack_[1].value.as < RegMemberDeclarer * > ();
                     yylhs.value.as < RegMemberDecl * > () = yystack_[0].value.as < RegMemberDecl * > ();
                 }
-#line 1585 "./insnsel/parser.cpp"
+#line 1706 "./insnsel/parser.cpp"
     break;
 
-  case 37: // regclassRegDecl: ID
-#line 285 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 36: // regclassRegDeclMember: ID OBRACKET regclassRange CBRACKET
+#line 290 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                 {
-                    yylhs.value.as < RegMemberDecl * > () = new RegMemberDecl();
-                    yylhs.value.as < RegMemberDecl * > ()->addRegister(yystack_[0].value.as < std::string > ());
+                    yystack_[1].value.as < RangedRegMemberDeclarer * > ()->setName(yystack_[3].value.as < std::string > ());
+                    yylhs.value.as < RegMemberDeclarer * > () = yystack_[1].value.as < RangedRegMemberDeclarer * > ();
                 }
-#line 1594 "./insnsel/parser.cpp"
+#line 1715 "./insnsel/parser.cpp"
     break;
 
-  case 38: // regclassTypeDecl: regtype COMMA regclassTypeDecl
-#line 293 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 37: // regclassRegDeclMember: ID
+#line 294 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+                   { yylhs.value.as < RegMemberDeclarer * > () = new SingleRegMemberDeclarer(yystack_[0].value.as < std::string > ()); }
+#line 1721 "./insnsel/parser.cpp"
+    break;
+
+  case 38: // regclassRange: regclassRangeElem regclassRangeMore
+#line 298 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+                {
+                    yystack_[0].value.as < RangedRegMemberDeclarer * > ()->addRange(yystack_[1].value.as < std::pair<int, int>  > ().first, yystack_[1].value.as < std::pair<int, int>  > ().second);
+                    yylhs.value.as < RangedRegMemberDeclarer * > () = yystack_[0].value.as < RangedRegMemberDeclarer * > ();
+                }
+#line 1730 "./insnsel/parser.cpp"
+    break;
+
+  case 39: // regclassRangeMore: COMMA regclassRange
+#line 306 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+                 { yylhs.value.as < RangedRegMemberDeclarer * > () = yystack_[0].value.as < RangedRegMemberDeclarer * > (); }
+#line 1736 "./insnsel/parser.cpp"
+    break;
+
+  case 40: // regclassRangeMore: %empty
+#line 307 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+                        { yylhs.value.as < RangedRegMemberDeclarer * > () = new RangedRegMemberDeclarer(); }
+#line 1742 "./insnsel/parser.cpp"
+    break;
+
+  case 41: // regclassRangeElem: NUMBER DASH NUMBER
+#line 312 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+                 {
+                     NncErrorLocation l(yystack_[2].location+yystack_[0].location, "While parsing the register name range");
+                     if ( yystack_[2].value.as < std::uint32_t > () > yystack_[0].value.as < std::uint32_t > () ) {
+                         throw NncParseError(yystack_[2].location, "Start of register name range is greater than the end");
+                     }
+
+                     yylhs.value.as < std::pair<int, int>  > () = std::make_pair(yystack_[2].value.as < std::uint32_t > (), yystack_[0].value.as < std::uint32_t > ());
+                }
+#line 1755 "./insnsel/parser.cpp"
+    break;
+
+  case 42: // regclassRangeElem: NUMBER
+#line 320 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+                       { yylhs.value.as < std::pair<int, int>  > () = std::make_pair(yystack_[0].value.as < std::uint32_t > (), yystack_[0].value.as < std::uint32_t > ()); }
+#line 1761 "./insnsel/parser.cpp"
+    break;
+
+  case 43: // regclassRegDeclMore: COMMA regclassRegDecl
+#line 324 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+                                      { yylhs.value.as < RegMemberDecl * > () = yystack_[0].value.as < RegMemberDecl * > (); }
+#line 1767 "./insnsel/parser.cpp"
+    break;
+
+  case 44: // regclassRegDeclMore: %empty
+#line 325 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+                       { yylhs.value.as < RegMemberDecl * > () = new RegMemberDecl(); }
+#line 1773 "./insnsel/parser.cpp"
+    break;
+
+  case 45: // regclassTypeDecl: regtype COMMA regclassTypeDecl
+#line 330 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                 {
                     yystack_[0].value.as < RegClassTypeDecl * > ()->addType(yystack_[2].value.as < RegType > ());
                     yylhs.value.as < RegClassTypeDecl * > () = yystack_[0].value.as < RegClassTypeDecl * > ();
                 }
-#line 1603 "./insnsel/parser.cpp"
+#line 1782 "./insnsel/parser.cpp"
     break;
 
-  case 39: // regclassTypeDecl: regtype
-#line 298 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 46: // regclassTypeDecl: regtype
+#line 335 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                 {
                     yylhs.value.as < RegClassTypeDecl * > () = new RegClassTypeDecl();
                     yylhs.value.as < RegClassTypeDecl * > ()->addType(yystack_[0].value.as < RegType > ());
                 }
-#line 1612 "./insnsel/parser.cpp"
+#line 1791 "./insnsel/parser.cpp"
     break;
 
-  case 40: // regtype: ID
-#line 304 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 47: // regtype: ID
+#line 341 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                { NncErrorLocation l(yystack_[0].location, "While parsing the register type");
                  yylhs.value.as < RegType > () = RegType::fromString(yystack_[0].value.as < std::string > ()); }
-#line 1619 "./insnsel/parser.cpp"
+#line 1798 "./insnsel/parser.cpp"
     break;
 
-  case 41: // insnDecl: INSN ID insnArgsDecl insnBody
-#line 308 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 48: // insnDecl: INSN ID insnArgsDecl insnBody
+#line 345 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                                                     {
                     yystack_[1].value.as < InsnArgsModifier * > ()->modify(*yystack_[0].value.as < InsnFactory * > ());
                     delete yystack_[1].value.as < InsnArgsModifier * > ();
@@ -1627,220 +1806,258 @@ namespace nnc {
                     NncErrorLocation l(yystack_[3].location + yystack_[0].location, "In the instruction declaration for " + yystack_[2].value.as < std::string > ());
                     builder.addInsn(yystack_[0].value.as < InsnFactory * > ()->build(yystack_[2].value.as < std::string > ()));
                 }
-#line 1631 "./insnsel/parser.cpp"
+#line 1810 "./insnsel/parser.cpp"
     break;
 
-  case 42: // insnArgsDecl: OPAREN insnArgsDeclList
-#line 317 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 49: // insnArgsDecl: OPAREN insnArgsDeclList
+#line 354 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                                         { yylhs.value.as < InsnArgsModifier * > () = yystack_[0].value.as < InsnArgsModifier * > (); }
-#line 1637 "./insnsel/parser.cpp"
+#line 1816 "./insnsel/parser.cpp"
     break;
 
-  case 43: // insnArgsDecl: %empty
-#line 318 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 50: // insnArgsDecl: %empty
+#line 355 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                        { yylhs.value.as < InsnArgsModifier * > () = new InsnArgsModifier(); }
-#line 1643 "./insnsel/parser.cpp"
+#line 1822 "./insnsel/parser.cpp"
     break;
 
-  case 44: // insnArgDeclDirection: %empty
-#line 322 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 51: // insnArgDeclDirection: %empty
+#line 359 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                        { yylhs.value.as < InsnArgDecl::Direction > () = InsnArgDecl::Input; }
-#line 1649 "./insnsel/parser.cpp"
+#line 1828 "./insnsel/parser.cpp"
     break;
 
-  case 45: // insnArgDeclDirection: OUTPUT
-#line 323 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 52: // insnArgDeclDirection: OUTPUT
+#line 360 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                        { yylhs.value.as < InsnArgDecl::Direction > () = InsnArgDecl::Output; }
-#line 1655 "./insnsel/parser.cpp"
+#line 1834 "./insnsel/parser.cpp"
     break;
 
-  case 46: // insnArgDeclDirection: INOUT
-#line 324 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 53: // insnArgDeclDirection: INOUT
+#line 361 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                        { yylhs.value.as < InsnArgDecl::Direction > () = InsnArgDecl::InputOutput; }
-#line 1661 "./insnsel/parser.cpp"
+#line 1840 "./insnsel/parser.cpp"
     break;
 
-  case 47: // insnArgsDeclList: insnArgDeclDirection VARNAME moreInsnArgsDeclList
-#line 328 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 54: // insnArgsDeclList: insnArgDeclDirection VARNAME moreInsnArgsDeclList
+#line 365 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                                                                   {
                   NncErrorLocation l(yystack_[2].location + yystack_[1].location, "In the insn arg declaration");
                   yystack_[0].value.as < InsnArgsModifier * > ()->addArgument(yystack_[1].value.as < std::string > ()).direction(yystack_[2].value.as < InsnArgDecl::Direction > ());
                   yylhs.value.as < InsnArgsModifier * > () = yystack_[0].value.as < InsnArgsModifier * > ();
                 }
-#line 1671 "./insnsel/parser.cpp"
+#line 1850 "./insnsel/parser.cpp"
     break;
 
-  case 48: // insnArgsDeclList: insnArgDeclDirection OBRACKET VARNAME CBRACKET moreInsnArgsDeclList
-#line 333 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 55: // insnArgsDeclList: insnArgDeclDirection OBRACKET VARNAME CBRACKET moreInsnArgsDeclList
+#line 370 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                                                                                               {
                   NncErrorLocation l(yystack_[4].location + yystack_[1].location, "In the insn arg declaration");
                   yystack_[0].value.as < InsnArgsModifier * > ()->addArgument(yystack_[2].value.as < std::string > ()).direction(yystack_[4].value.as < InsnArgDecl::Direction > ()).makeOptional();
                   yylhs.value.as < InsnArgsModifier * > () = yystack_[0].value.as < InsnArgsModifier * > ();
                 }
-#line 1681 "./insnsel/parser.cpp"
+#line 1860 "./insnsel/parser.cpp"
     break;
 
-  case 49: // moreInsnArgsDeclList: COMMA insnArgsDeclList
-#line 341 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 56: // moreInsnArgsDeclList: COMMA insnArgsDeclList
+#line 378 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                                        { yylhs.value.as < InsnArgsModifier * > () = yystack_[0].value.as < InsnArgsModifier * > (); }
-#line 1687 "./insnsel/parser.cpp"
+#line 1866 "./insnsel/parser.cpp"
     break;
 
-  case 50: // moreInsnArgsDeclList: CPAREN
-#line 342 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 57: // moreInsnArgsDeclList: CPAREN
+#line 379 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                        { yylhs.value.as < InsnArgsModifier * > () = new InsnArgsModifier(); }
-#line 1693 "./insnsel/parser.cpp"
+#line 1872 "./insnsel/parser.cpp"
     break;
 
-  case 51: // insnBody: SEMICOLON
-#line 345 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 58: // insnBody: SEMICOLON
+#line 382 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                           { yylhs.value.as < InsnFactory * > () = new InsnFactory(); }
-#line 1699 "./insnsel/parser.cpp"
+#line 1878 "./insnsel/parser.cpp"
     break;
 
-  case 52: // insnBody: OBRACE insnBodyDecls
-#line 346 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 59: // insnBody: OBRACE insnBodyDecls
+#line 383 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                                      { yylhs.value.as < InsnFactory * > () = yystack_[0].value.as < InsnFactory * > (); }
-#line 1705 "./insnsel/parser.cpp"
+#line 1884 "./insnsel/parser.cpp"
     break;
 
-  case 53: // insnBodyDecls: insnBodyDecl insnBodyDecls
-#line 349 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 60: // insnBodyDecls: insnBodyDecl insnBodyDecls
+#line 386 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                                            {
                     yystack_[1].value.as < InsnModifier * > ()->modify(*yystack_[0].value.as < InsnFactory * > ());
                     delete yystack_[1].value.as < InsnModifier * > ();
                     yylhs.value.as < InsnFactory * > () = yystack_[0].value.as < InsnFactory * > ();
                 }
-#line 1715 "./insnsel/parser.cpp"
+#line 1894 "./insnsel/parser.cpp"
     break;
 
-  case 54: // insnBodyDecls: CBRACE
-#line 354 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 61: // insnBodyDecls: CBRACE
+#line 391 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                        { yylhs.value.as < InsnFactory * > () = new InsnFactory(); }
-#line 1721 "./insnsel/parser.cpp"
+#line 1900 "./insnsel/parser.cpp"
     break;
 
-  case 55: // insnBodyDecl: paramDecl
-#line 357 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 62: // insnBodyDecl: paramDecl
+#line 394 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                           { yylhs.value.as < InsnModifier * > () = static_cast<InsnModifier *>(yystack_[0].value.as < ParamDecl * > ()); }
-#line 1727 "./insnsel/parser.cpp"
+#line 1906 "./insnsel/parser.cpp"
     break;
 
-  case 56: // insnBodyDecl: insnVarDecl
-#line 358 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 63: // insnBodyDecl: insnVarDecl
+#line 395 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                             { yylhs.value.as < InsnModifier * > () = static_cast<InsnModifier *>(yystack_[0].value.as < InsnVarDecl * > ()); }
-#line 1733 "./insnsel/parser.cpp"
+#line 1912 "./insnsel/parser.cpp"
     break;
 
-  case 57: // insnBodyDecl: constructorDecl
-#line 359 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 64: // insnBodyDecl: constructorDecl
+#line 396 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                                 { yylhs.value.as < InsnModifier * > () = static_cast<InsnModifier *>(yystack_[0].value.as < ConstructorDecl * > ()); }
-#line 1739 "./insnsel/parser.cpp"
+#line 1918 "./insnsel/parser.cpp"
     break;
 
-  case 58: // constructorDecl: CONSTRUCTOR OPAREN constructorArgList SEMICOLON
-#line 364 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 65: // insnBodyDecl: intersectDecl
+#line 397 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+                              { yylhs.value.as < InsnModifier * > () = static_cast<InsnModifier *>(yystack_[0].value.as < IntersectDecl * > ()); }
+#line 1924 "./insnsel/parser.cpp"
+    break;
+
+  case 66: // intersectDecl: INTERSECT OPAREN VARNAME COMMA VARNAME COMMA ID CPAREN postfixIfDecl SEMICOLON
+#line 401 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+                {
+                    yylhs.value.as < IntersectDecl * > () = new IntersectDecl(yystack_[7].value.as < std::string > (), yystack_[5].value.as < std::string > (), yystack_[3].value.as < std::string > ());
+                    if ( yystack_[1].value.as < std::optional<template_string> > () )
+                        yylhs.value.as < IntersectDecl * > ()->setCondition(*yystack_[1].value.as < std::optional<template_string> > ());
+                }
+#line 1934 "./insnsel/parser.cpp"
+    break;
+
+  case 67: // postfixIfDecl: IF STRING
+#line 408 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+                           {
+                     yylhs.value.as < std::optional<template_string> > () = template_string(yystack_[0].value.as < std::string > ());
+                 }
+#line 1942 "./insnsel/parser.cpp"
+    break;
+
+  case 68: // postfixIfDecl: %empty
+#line 411 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+                        { }
+#line 1948 "./insnsel/parser.cpp"
+    break;
+
+  case 69: // constructorDecl: CONSTRUCTOR OPAREN constructorArgList SEMICOLON
+#line 416 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                 {
                     NncErrorLocation l(yystack_[3].location + yystack_[1].location, "In the constructor declaration");
                     yystack_[1].value.as < ConstructorDecl * > ()->errorContext() = NncErrorContextStack::current();
                     yylhs.value.as < ConstructorDecl * > () = yystack_[1].value.as < ConstructorDecl * > ();
                 }
-#line 1749 "./insnsel/parser.cpp"
+#line 1958 "./insnsel/parser.cpp"
     break;
 
-  case 59: // constructorArgList: constructorArgTy moreConstructorArgs
-#line 372 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 70: // constructorArgList: constructorArgTy moreConstructorArgs
+#line 424 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                                                                 {
                   yystack_[0].value.as < ConstructorDecl * > ()->addType(yystack_[1].value.as < InsnVarType * > ());
                   yylhs.value.as < ConstructorDecl * > () = yystack_[0].value.as < ConstructorDecl * > ();
                 }
-#line 1758 "./insnsel/parser.cpp"
+#line 1967 "./insnsel/parser.cpp"
     break;
 
-  case 60: // constructorArgList: CPAREN
-#line 376 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 71: // constructorArgList: CPAREN
+#line 428 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                        { yylhs.value.as < ConstructorDecl * > () = new ConstructorDecl(); }
-#line 1764 "./insnsel/parser.cpp"
+#line 1973 "./insnsel/parser.cpp"
     break;
 
-  case 61: // moreConstructorArgs: COMMA constructorArgList
-#line 380 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 72: // moreConstructorArgs: COMMA constructorArgList
+#line 432 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                                                { yylhs.value.as < ConstructorDecl * > () = yystack_[0].value.as < ConstructorDecl * > (); }
-#line 1770 "./insnsel/parser.cpp"
+#line 1979 "./insnsel/parser.cpp"
     break;
 
-  case 62: // moreConstructorArgs: CPAREN
-#line 381 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 73: // moreConstructorArgs: CPAREN
+#line 433 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                        { yylhs.value.as < ConstructorDecl * > () = new ConstructorDecl(); }
-#line 1776 "./insnsel/parser.cpp"
+#line 1985 "./insnsel/parser.cpp"
     break;
 
-  case 63: // constructorArgTy: REGISTER
-#line 385 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 74: // constructorArgTy: REGISTER
+#line 437 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                           { yylhs.value.as < InsnVarType * > () = new InsnRegisterVarType(); }
-#line 1782 "./insnsel/parser.cpp"
+#line 1991 "./insnsel/parser.cpp"
     break;
 
-  case 64: // constructorArgTy: CONSTANT
-#line 386 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 75: // constructorArgTy: CONSTANT
+#line 438 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                           { yylhs.value.as < InsnVarType * > () = new InsnConstantVarType(); }
-#line 1788 "./insnsel/parser.cpp"
+#line 1997 "./insnsel/parser.cpp"
     break;
 
-  case 65: // constructorArgTy: ID
-#line 387 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 76: // constructorArgTy: ID
+#line 439 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                                {
                    NncErrorLocation l(yystack_[0].location, "In constructor arg type declaration");
                    CType &ty(builder.cType(yystack_[0].value.as < std::string > ()));
                    yylhs.value.as < InsnVarType * > () = static_cast<InsnVarType *>(new CType(ty));
                  }
-#line 1798 "./insnsel/parser.cpp"
+#line 2007 "./insnsel/parser.cpp"
     break;
 
-  case 66: // insnVarDecl: VAR VARNAME COLON insnVarTyDecl insnVarDeclBody SEMICOLON
-#line 395 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 77: // insnVarDecl: VAR VARNAME COLON insnVarTyDecl insnVarDeclBody SEMICOLON
+#line 447 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                 {
                   NncErrorLocation l(yystack_[5].location + yystack_[0].location, "In the var decl");
                   yylhs.value.as < InsnVarDecl * > () = yystack_[1].value.as < InsnVarDeclFactory * > ()->build(yystack_[4].value.as < std::string > (), yystack_[2].value.as < InsnVarType * > ());
                   delete yystack_[1].value.as < InsnVarDeclFactory * > ();
                 }
-#line 1808 "./insnsel/parser.cpp"
+#line 2017 "./insnsel/parser.cpp"
     break;
 
-  case 67: // insnVarTyDecl: REGISTER
-#line 402 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 78: // optionalRegClass: COMMA ID
+#line 455 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+                          { yylhs.value.as < std::string > () = yystack_[0].value.as < std::string > (); }
+#line 2023 "./insnsel/parser.cpp"
+    break;
+
+  case 80: // insnVarTyDecl: REGISTER
+#line 459 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                          { yylhs.value.as < InsnVarType * > () = new InsnRegisterVarType(); }
-#line 1814 "./insnsel/parser.cpp"
+#line 2029 "./insnsel/parser.cpp"
     break;
 
-  case 68: // insnVarTyDecl: REGISTER OPAREN rtlType CPAREN
-#line 403 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
-                                               {
+  case 81: // insnVarTyDecl: REGISTER OPAREN rtlType optionalRegClass CPAREN
+#line 460 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+                                                                {
                   auto newTy(new InsnRegisterVarType());
-                  newTy->setRtlType(yystack_[1].value.as < InsnRtlType > ());
+                  newTy->setRtlType(yystack_[2].value.as < InsnRtlType > ());
+                  if ( !yystack_[1].value.as < std::string > ().empty() )
+                      newTy->setRegClass(yystack_[1].value.as < std::string > ());
                   yylhs.value.as < InsnVarType * > () = static_cast<InsnVarType *>(newTy);
                 }
-#line 1824 "./insnsel/parser.cpp"
+#line 2041 "./insnsel/parser.cpp"
     break;
 
-  case 69: // insnVarTyDecl: CONSTANT
-#line 408 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 82: // insnVarTyDecl: CONSTANT
+#line 467 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                          { yylhs.value.as < InsnVarType * > () = new InsnConstantVarType(); }
-#line 1830 "./insnsel/parser.cpp"
+#line 2047 "./insnsel/parser.cpp"
     break;
 
-  case 70: // insnVarTyDecl: CONSTANT OPAREN rtlType CPAREN
-#line 409 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 83: // insnVarTyDecl: CONSTANT OPAREN rtlType CPAREN
+#line 468 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                                                {
                   auto newTy(new InsnConstantVarType());
                   newTy->setRtlType(yystack_[1].value.as < InsnRtlType > ());
                   yylhs.value.as < InsnVarType * > () = static_cast<InsnVarType *>(newTy);
                 }
-#line 1840 "./insnsel/parser.cpp"
+#line 2057 "./insnsel/parser.cpp"
     break;
 
-  case 71: // insnVarTyDecl: ID
-#line 414 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 84: // insnVarTyDecl: ID
+#line 473 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                               {
                   NncErrorLocation l(yystack_[0].location, "In the var type declaration");
                   CType &ty(builder.cType(yystack_[0].value.as < std::string > ()));
@@ -1848,95 +2065,97 @@ namespace nnc {
                     throw NncParseError(yystack_[0].location, "Type " + yystack_[0].value.as < std::string > () + " requires an RTL type parameter");
                   yylhs.value.as < InsnVarType * > () = static_cast<InsnVarType *>(new CType(ty));
                 }
-#line 1852 "./insnsel/parser.cpp"
+#line 2069 "./insnsel/parser.cpp"
     break;
 
-  case 72: // insnVarTyDecl: ID OPAREN rtlType CPAREN
-#line 421 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
-                                                    {
-                  NncErrorLocation l(yystack_[3].location, "In the var type declaration");
-                  CType &ty(builder.cType(yystack_[3].value.as < std::string > ()));
+  case 85: // insnVarTyDecl: ID OPAREN rtlType optionalRegClass CPAREN
+#line 480 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+                                                                     {
+                  NncErrorLocation l(yystack_[4].location, "In the var type declaration");
+                  CType &ty(builder.cType(yystack_[4].value.as < std::string > ()));
                   if ( !ty.acceptsRtlType() )
-                    throw NncParseError(yystack_[3].location, "Type " + yystack_[3].value.as < std::string > () + " does not accept RTL type parameters");
+                    throw NncParseError(yystack_[4].location, "Type " + yystack_[4].value.as < std::string > () + " does not accept RTL type parameters");
                   auto newType(new CType(ty));
-                  newType->setRtlType(yystack_[1].value.as < InsnRtlType > ());
+                  newType->setRtlType(yystack_[2].value.as < InsnRtlType > ());
+                  if ( !yystack_[1].value.as < std::string > ().empty() )
+                      newType->setRegClass(yystack_[1].value.as < std::string > ());
                   yylhs.value.as < InsnVarType * > () = static_cast<InsnVarType *>(newType);
                 }
-#line 1866 "./insnsel/parser.cpp"
+#line 2085 "./insnsel/parser.cpp"
     break;
 
-  case 73: // rtlType: ID rtlType
-#line 432 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 86: // rtlType: ID rtlType
+#line 493 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                            {
                     NncErrorLocation l(yystack_[1].location + yystack_[0].location, "In the RTL type");
                     if ( yystack_[1].value.as < std::string > () != "ptr" )
                       throw NncParseError("Expected ptr");
                     yylhs.value.as < InsnRtlType > () = yystack_[0].value.as < InsnRtlType > ().ptr();
                 }
-#line 1877 "./insnsel/parser.cpp"
+#line 2096 "./insnsel/parser.cpp"
     break;
 
-  case 74: // rtlType: ID
-#line 438 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 87: // rtlType: ID
+#line 499 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                    {
                    NncErrorLocation l(yystack_[0].location, "In the primitive RTL type");
                    yylhs.value.as < InsnRtlType > () = InsnRtlType(yystack_[0].value.as < std::string > ());
                 }
-#line 1886 "./insnsel/parser.cpp"
+#line 2105 "./insnsel/parser.cpp"
     break;
 
-  case 75: // insnVarDeclBody: %empty
-#line 444 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 88: // insnVarDeclBody: %empty
+#line 505 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                            { yylhs.value.as < InsnVarDeclFactory * > () = new InsnVarDeclFactory(); }
-#line 1892 "./insnsel/parser.cpp"
+#line 2111 "./insnsel/parser.cpp"
     break;
 
-  case 76: // insnVarDeclBody: OBRACE insnVarDeclBodyDecls
-#line 445 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 89: // insnVarDeclBody: OBRACE insnVarDeclBodyDecls
+#line 506 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                                                 { yylhs.value.as < InsnVarDeclFactory * > () = yystack_[0].value.as < InsnVarDeclFactory * > (); }
-#line 1898 "./insnsel/parser.cpp"
+#line 2117 "./insnsel/parser.cpp"
     break;
 
-  case 77: // insnVarDeclBodyDecls: CBRACE
-#line 448 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 90: // insnVarDeclBodyDecls: CBRACE
+#line 509 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                              { yylhs.value.as < InsnVarDeclFactory * > () = new InsnVarDeclFactory(); }
-#line 1904 "./insnsel/parser.cpp"
+#line 2123 "./insnsel/parser.cpp"
     break;
 
-  case 78: // insnVarDeclBodyDecls: insnVarDeclBodyDecl insnVarDeclBodyDecls
-#line 450 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 91: // insnVarDeclBodyDecls: insnVarDeclBodyDecl insnVarDeclBodyDecls
+#line 511 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                       {
                         yystack_[1].value.as < InsnVarDeclModifier * > ()->modify(*yystack_[0].value.as < InsnVarDeclFactory * > ());
                         delete yystack_[1].value.as < InsnVarDeclModifier * > ();
                         yylhs.value.as < InsnVarDeclFactory * > () = yystack_[0].value.as < InsnVarDeclFactory * > ();
                       }
-#line 1914 "./insnsel/parser.cpp"
+#line 2133 "./insnsel/parser.cpp"
     break;
 
-  case 79: // insnVarDeclBodyDecl: paramDecl
-#line 458 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 92: // insnVarDeclBodyDecl: paramDecl
+#line 519 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                           { yylhs.value.as < InsnVarDeclModifier * > () = static_cast<InsnVarDeclModifier *>(yystack_[0].value.as < ParamDecl * > ()); }
-#line 1920 "./insnsel/parser.cpp"
+#line 2139 "./insnsel/parser.cpp"
     break;
 
-  case 80: // insnRuleDecl: INSNRULE ID OBRACE insnRuleBody
-#line 461 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 93: // insnRuleDecl: INSNRULE ID OBRACE insnRuleBody
+#line 522 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                                                 {
                     NncErrorLocation l(yystack_[3].location + yystack_[0].location, "In the instruction rule");
                     builder.addInsnRule(yystack_[0].value.as < InsnRuleFactory * > ()->build(yystack_[2].value.as < std::string > ()));
                     delete yystack_[0].value.as < InsnRuleFactory * > ();
                 }
-#line 1930 "./insnsel/parser.cpp"
+#line 2149 "./insnsel/parser.cpp"
     break;
 
-  case 81: // insnRuleBody: cbraceSemi
-#line 468 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 94: // insnRuleBody: cbraceSemi
+#line 529 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                            { yylhs.value.as < InsnRuleFactory * > () = new InsnRuleFactory(); }
-#line 1936 "./insnsel/parser.cpp"
+#line 2155 "./insnsel/parser.cpp"
     break;
 
-  case 82: // insnRuleBody: insnRuleBodyDecl insnRuleBody
-#line 469 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 95: // insnRuleBody: insnRuleBodyDecl insnRuleBody
+#line 530 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                                               {
                   if ( yystack_[1].value.as < InsnRuleModifier * > () ) {
                     yystack_[1].value.as < InsnRuleModifier * > ()->modify(*yystack_[0].value.as < InsnRuleFactory * > ());
@@ -1944,355 +2163,406 @@ namespace nnc {
                   }
                   yylhs.value.as < InsnRuleFactory * > () = yystack_[0].value.as < InsnRuleFactory * > ();
                 }
-#line 1948 "./insnsel/parser.cpp"
+#line 2167 "./insnsel/parser.cpp"
     break;
 
-  case 83: // insnRuleVarType: REGTYPE
-#line 479 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 96: // insnRuleVarType: REGTYPE
+#line 540 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                          { yylhs.value.as < InsnVariable::Type > () = InsnVariable::RegTypeType; }
-#line 1954 "./insnsel/parser.cpp"
+#line 2173 "./insnsel/parser.cpp"
     break;
 
-  case 84: // insnRuleVarType: REGISTER
-#line 480 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 97: // insnRuleVarType: REGISTER
+#line 541 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                          { yylhs.value.as < InsnVariable::Type > () = InsnVariable::RegisterType; }
-#line 1960 "./insnsel/parser.cpp"
+#line 2179 "./insnsel/parser.cpp"
     break;
 
-  case 85: // insnRuleVarType: CONSTANT
-#line 481 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 98: // insnRuleVarType: CONSTANT
+#line 542 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                          { yylhs.value.as < InsnVariable::Type > () = InsnVariable::ConstantType; }
-#line 1966 "./insnsel/parser.cpp"
+#line 2185 "./insnsel/parser.cpp"
     break;
 
-  case 86: // insnRuleBodyDecl: VAR VARNAME COLON insnRuleVarType SEMICOLON
-#line 486 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 99: // insnRuleBodyDecl: VAR VARNAME COLON insnRuleVarType SEMICOLON
+#line 547 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                 {
                    auto decl(new InsnRuleVarDecl(yystack_[3].location, yystack_[3].value.as < std::string > (), yystack_[1].value.as < InsnVariable::Type > ()));
                    yylhs.value.as < InsnRuleModifier * > () = static_cast<InsnRuleModifier *>(decl);
                 }
-#line 1975 "./insnsel/parser.cpp"
+#line 2194 "./insnsel/parser.cpp"
     break;
 
-  case 87: // insnRuleBodyDecl: PATTERN OBRACE patternsDecl cbraceSemi
-#line 490 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 100: // insnRuleBodyDecl: PATTERN OBRACE patternsDecl cbraceSemi
+#line 551 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                                                         { yylhs.value.as < InsnRuleModifier * > () = static_cast<InsnRuleModifier *>(yystack_[1].value.as < InsnRuleModifier * > ()); }
-#line 1981 "./insnsel/parser.cpp"
+#line 2200 "./insnsel/parser.cpp"
     break;
 
-  case 88: // insnRuleBodyDecl: IF STRING SEMICOLON
-#line 491 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 101: // insnRuleBodyDecl: IF STRING SEMICOLON
+#line 552 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                                      { yylhs.value.as < InsnRuleModifier * > () = static_cast<InsnRuleModifier *>(new InsnCondDecl(yystack_[1].value.as < std::string > ())); }
-#line 1987 "./insnsel/parser.cpp"
+#line 2206 "./insnsel/parser.cpp"
     break;
 
-  case 89: // insnRuleBodyDecl: CHECK STRING SEMICOLON
-#line 492 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 102: // insnRuleBodyDecl: CHECK STRING SEMICOLON
+#line 553 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                                         { yylhs.value.as < InsnRuleModifier * > () = static_cast<InsnRuleModifier *>(new InsnCheckDecl(yystack_[2].location, yystack_[1].value.as < std::string > ())); }
-#line 1993 "./insnsel/parser.cpp"
+#line 2212 "./insnsel/parser.cpp"
     break;
 
-  case 90: // insnRuleBodyDecl: paramDecl
-#line 493 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 103: // insnRuleBodyDecl: paramDecl
+#line 554 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                            { yylhs.value.as < InsnRuleModifier * > () = static_cast<InsnRuleModifier *>(yystack_[0].value.as < ParamDecl * > ()); }
-#line 1999 "./insnsel/parser.cpp"
+#line 2218 "./insnsel/parser.cpp"
     break;
 
-  case 91: // insnRuleBodyDecl: ASM OBRACE asmDecl
-#line 494 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 104: // insnRuleBodyDecl: ASM OBRACE asmDecl
+#line 555 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                                     { yylhs.value.as < InsnRuleModifier * > () = static_cast<InsnRuleModifier *>(yystack_[0].value.as < InsnRuleAsmDecl * > ()); }
-#line 2005 "./insnsel/parser.cpp"
+#line 2224 "./insnsel/parser.cpp"
     break;
 
-  case 92: // patternsDecl: patternsDisjunction
-#line 497 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 105: // insnRuleBodyDecl: ALIAS VARNAME VARNAME SEMICOLON
+#line 556 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+                                                              {
+                     yylhs.value.as < InsnRuleModifier * > () = static_cast<InsnRuleModifier *>(new InsnAliasDecl(yystack_[2].value.as < std::string > (), yystack_[1].value.as < std::string > ()));
+                 }
+#line 2232 "./insnsel/parser.cpp"
+    break;
+
+  case 106: // patternsDecl: patternsDisjunction
+#line 561 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                                   { yylhs.value.as < InsnRuleModifier * > () = static_cast<InsnRuleModifier *>(yystack_[0].value.as < InsnGen * > ()); }
-#line 2011 "./insnsel/parser.cpp"
+#line 2238 "./insnsel/parser.cpp"
     break;
 
-  case 93: // patternsDisjunction: patternsConjunction morePatternsDisjunction
-#line 500 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 107: // patternsDisjunction: patternsConjunction morePatternsDisjunction
+#line 564 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                                                                         {
                   yylhs.value.as < InsnGen * > () = InsnRuleDisjunction::make(yystack_[0].value.as < InsnGen * > (), yystack_[1].value.as < InsnGen * > ());
                 }
-#line 2019 "./insnsel/parser.cpp"
+#line 2246 "./insnsel/parser.cpp"
     break;
 
-  case 94: // morePatternsDisjunction: BAR patternsDisjunction
-#line 506 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 108: // morePatternsDisjunction: BAR patternsDisjunction
+#line 570 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                                         {
                   yylhs.value.as < InsnGen * > () = yystack_[0].value.as < InsnGen * > ();
                 }
-#line 2027 "./insnsel/parser.cpp"
+#line 2254 "./insnsel/parser.cpp"
     break;
 
-  case 95: // morePatternsDisjunction: %empty
-#line 509 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 109: // morePatternsDisjunction: %empty
+#line 573 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                        { yylhs.value.as < InsnGen * > () = nullptr; }
-#line 2033 "./insnsel/parser.cpp"
+#line 2260 "./insnsel/parser.cpp"
     break;
 
-  case 96: // patternsConjunction: baseInsnPattern SEMICOLON morePatternsConjunction
-#line 513 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 110: // patternsConjunction: baseInsnPattern SEMICOLON morePatternsConjunction
+#line 577 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                                                                               {
                   yylhs.value.as < InsnGen * > () = InsnRuleConjunction::make(yystack_[2].value.as < InsnGen * > (), yystack_[0].value.as < InsnGen * > ());
                 }
-#line 2041 "./insnsel/parser.cpp"
+#line 2268 "./insnsel/parser.cpp"
     break;
 
-  case 97: // patternsConjunction: baseInsnPattern
-#line 516 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 111: // patternsConjunction: baseInsnPattern
+#line 580 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                                       {
                   yylhs.value.as < InsnGen * > () = static_cast<InsnGen *>(yystack_[0].value.as < InsnGen * > ());
                 }
-#line 2049 "./insnsel/parser.cpp"
+#line 2276 "./insnsel/parser.cpp"
     break;
 
-  case 98: // patternsConjunction: OBRACE patternsDisjunction cbraceSemi optionalPattern morePatternsConjunction
-#line 519 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
-                                                                                                          {
+  case 112: // patternsConjunction: OBRACE patternsDisjunction CBRACE optionalPatternSemicolon morePatternsConjunction
+#line 583 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+                                                                                                                         {
                   if ( yystack_[1].value.as < bool > () ) {
                     yystack_[3].value.as < InsnGen * > () = InsnRuleOptionalPattern::make(yystack_[3].value.as < InsnGen * > ());
                   }
                   yylhs.value.as < InsnGen * > () = InsnRuleConjunction::make(yystack_[3].value.as < InsnGen * > (), yystack_[0].value.as < InsnGen * > ());
                 }
-#line 2060 "./insnsel/parser.cpp"
+#line 2287 "./insnsel/parser.cpp"
     break;
 
-  case 99: // optionalPattern: QUESTIONMARK
-#line 528 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 113: // patternsConjunction: OBRACKET patternsDisjunction CBRACKET optionalPatternSemicolon morePatternsConjunction
+#line 589 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+                                                                                                                             {
+                    if ( yystack_[1].value.as < bool > () ) {
+                        yystack_[3].value.as < InsnGen * > () = InsnRuleOptionalPattern::make(yystack_[3].value.as < InsnGen * > ());
+                    }
+                    auto head(new InsnRuleHiddenPattern(yystack_[3].value.as < InsnGen * > ()));
+                    yylhs.value.as < InsnGen * > () = InsnRuleConjunction::make(head, yystack_[0].value.as < InsnGen * > ());
+                }
+#line 2299 "./insnsel/parser.cpp"
+    break;
+
+  case 114: // optionalPatternSemicolon: optionalPattern
+#line 599 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+                                { yylhs.value.as < bool > () = yystack_[0].value.as < bool > (); }
+#line 2305 "./insnsel/parser.cpp"
+    break;
+
+  case 115: // optionalPatternSemicolon: optionalPattern SEMICOLON
+#line 600 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+                                          { yylhs.value.as < bool > () = yystack_[1].value.as < bool > (); }
+#line 2311 "./insnsel/parser.cpp"
+    break;
+
+  case 116: // optionalPattern: QUESTIONMARK
+#line 604 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                              { yylhs.value.as < bool > () = true; }
-#line 2066 "./insnsel/parser.cpp"
+#line 2317 "./insnsel/parser.cpp"
     break;
 
-  case 100: // optionalPattern: %empty
-#line 529 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 117: // optionalPattern: %empty
+#line 605 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                        { yylhs.value.as < bool > () = false; }
-#line 2072 "./insnsel/parser.cpp"
+#line 2323 "./insnsel/parser.cpp"
     break;
 
-  case 101: // morePatternsConjunction: %empty
-#line 533 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 118: // morePatternsConjunction: %empty
+#line 609 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                        { yylhs.value.as < InsnGen * > () = nullptr; }
-#line 2078 "./insnsel/parser.cpp"
+#line 2329 "./insnsel/parser.cpp"
     break;
 
-  case 102: // morePatternsConjunction: patternsConjunction
-#line 534 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 119: // morePatternsConjunction: patternsConjunction
+#line 610 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                                     { yylhs.value.as < InsnGen * > () = yystack_[0].value.as < InsnGen * > (); }
-#line 2084 "./insnsel/parser.cpp"
+#line 2335 "./insnsel/parser.cpp"
     break;
 
-  case 103: // baseInsnPattern: simpleInsnPattern optionalPattern
-#line 538 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 120: // baseInsnPattern: simpleInsnPattern optionalPattern
+#line 614 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                                                   {
                   yylhs.value.as < InsnGen * > () = static_cast<InsnGen *>(yystack_[1].value.as < InsnPattern * > ());
                   if ( yystack_[0].value.as < bool > () ) yylhs.value.as < InsnGen * > () = InsnRuleOptionalPattern::make(yylhs.value.as < InsnGen * > ());
                 }
-#line 2093 "./insnsel/parser.cpp"
+#line 2344 "./insnsel/parser.cpp"
     break;
 
-  case 104: // simpleInsnPattern: ID OPAREN insnArgs
-#line 545 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 121: // simpleInsnPattern: ID OPAREN insnArgs
+#line 621 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                                            {
                   yylhs.value.as < InsnPattern * > () = new InsnPattern(yystack_[2].value.as < std::string > (), yystack_[0].value.as < InsnArgPatterns * > ());
                 }
-#line 2101 "./insnsel/parser.cpp"
+#line 2352 "./insnsel/parser.cpp"
     break;
 
-  case 105: // insnArgs: CPAREN
-#line 550 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 122: // insnArgs: CPAREN
+#line 626 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                        { yylhs.value.as < InsnArgPatterns * > () = new InsnArgPatterns(); }
-#line 2107 "./insnsel/parser.cpp"
+#line 2358 "./insnsel/parser.cpp"
     break;
 
-  case 106: // insnArgs: ID insnArgPattern moreInsnArgs
-#line 551 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 123: // insnArgs: ID insnArgPattern moreInsnArgs
+#line 627 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                                                {
                    yylhs.value.as < InsnArgPatterns * > () = yystack_[0].value.as < InsnArgPatterns * > ();
                    yylhs.value.as < InsnArgPatterns * > ()->addArgument(yystack_[2].value.as < std::string > (), yystack_[1].value.as < InsnArgPattern > ());
                 }
-#line 2116 "./insnsel/parser.cpp"
+#line 2367 "./insnsel/parser.cpp"
     break;
 
-  case 107: // insnArgDirectionality: EQUAL
-#line 558 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 124: // insnArgDirectionality: EQUAL
+#line 634 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                       { yylhs.value.as < InsnArgPattern::Directionality > () = InsnArgPattern::Input; }
-#line 2122 "./insnsel/parser.cpp"
+#line 2373 "./insnsel/parser.cpp"
     break;
 
-  case 108: // insnArgDirectionality: OUTPUT
-#line 559 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 125: // insnArgDirectionality: OUTPUT
+#line 635 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                        { yylhs.value.as < InsnArgPattern::Directionality > () = InsnArgPattern::Output; }
-#line 2128 "./insnsel/parser.cpp"
+#line 2379 "./insnsel/parser.cpp"
     break;
 
-  case 109: // insnArgDirectionality: INOUT
-#line 560 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 126: // insnArgDirectionality: INOUT
+#line 636 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                       { yylhs.value.as < InsnArgPattern::Directionality > () = InsnArgPattern::InputOutput; }
-#line 2134 "./insnsel/parser.cpp"
+#line 2385 "./insnsel/parser.cpp"
     break;
 
-  case 110: // moreInsnArgs: COMMA insnArgs
-#line 563 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 127: // moreInsnArgs: COMMA insnArgs
+#line 639 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                                { yylhs.value.as < InsnArgPatterns * > () = yystack_[0].value.as < InsnArgPatterns * > (); }
-#line 2140 "./insnsel/parser.cpp"
+#line 2391 "./insnsel/parser.cpp"
     break;
 
-  case 111: // moreInsnArgs: CPAREN
-#line 564 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 128: // moreInsnArgs: CPAREN
+#line 640 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                        { yylhs.value.as < InsnArgPatterns * > () = new InsnArgPatterns(); }
-#line 2146 "./insnsel/parser.cpp"
+#line 2397 "./insnsel/parser.cpp"
     break;
 
-  case 112: // insnArgPattern: insnArgDirectionality OPAREN insnArgTypePattern CPAREN insnArgExprPattern
-#line 567 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 129: // insnArgPattern: insnArgDirectionality OPAREN insnArgTypePattern CPAREN insnArgExprPattern
+#line 643 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                                                                                           {
                     yylhs.value.as < InsnArgPattern > () = InsnArgPattern(yystack_[4].location, yystack_[4].value.as < InsnArgPattern::Directionality > (), yystack_[2].value.as < std::string > (), yystack_[0].value.as < std::string > ());
                 }
-#line 2154 "./insnsel/parser.cpp"
+#line 2405 "./insnsel/parser.cpp"
     break;
 
-  case 113: // insnArgPattern: insnArgDirectionality insnArgExprPattern
-#line 570 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 130: // insnArgPattern: insnArgDirectionality insnArgExprPattern
+#line 646 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                                                          {
                     yylhs.value.as < InsnArgPattern > () = InsnArgPattern(yystack_[1].location, yystack_[1].value.as < InsnArgPattern::Directionality > (), yystack_[0].value.as < std::string > ());
                 }
-#line 2162 "./insnsel/parser.cpp"
+#line 2413 "./insnsel/parser.cpp"
     break;
 
-  case 114: // insnArgTypePattern: VARNAME
-#line 575 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 131: // insnArgTypePattern: VARNAME
+#line 651 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                             { yylhs.value.as < std::string > () = yystack_[0].value.as < std::string > (); }
-#line 2168 "./insnsel/parser.cpp"
+#line 2419 "./insnsel/parser.cpp"
     break;
 
-  case 115: // insnArgExprPattern: VARNAME
-#line 579 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 132: // insnArgExprPattern: VARNAME
+#line 655 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                         { yylhs.value.as < std::string > () = yystack_[0].value.as < std::string > (); }
-#line 2174 "./insnsel/parser.cpp"
+#line 2425 "./insnsel/parser.cpp"
     break;
 
-  case 116: // asmDecl: cbraceSemi
-#line 583 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 133: // asmDecl: cbraceSemi
+#line 659 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                            { yylhs.value.as < InsnRuleAsmDecl * > () = new InsnRuleAsmDecl(); }
-#line 2180 "./insnsel/parser.cpp"
+#line 2431 "./insnsel/parser.cpp"
     break;
 
-  case 117: // asmDecl: asmInsn SEMICOLON asmDecl
-#line 584 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 134: // asmDecl: asmInsn SEMICOLON asmDecl
+#line 660 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                                           {
                   yystack_[0].value.as < InsnRuleAsmDecl * > ()->generateInsn(*yystack_[2].value.as < AsmInsnCall * > ());
                   delete yystack_[2].value.as < AsmInsnCall * > ();
                   yylhs.value.as < InsnRuleAsmDecl * > () = yystack_[0].value.as < InsnRuleAsmDecl * > ();
         }
-#line 2190 "./insnsel/parser.cpp"
+#line 2441 "./insnsel/parser.cpp"
     break;
 
-  case 118: // asmInsn: ID OPAREN asmInsnArgs
-#line 591 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
-                                      {
-                    NncErrorLocation l(yystack_[2].location + yystack_[0].location, "In the generated asm expression");
-                    yystack_[0].value.as < AsmInsnCall * > ()->mnemonic(yystack_[2].value.as < std::string > ());
-                    yystack_[0].value.as < AsmInsnCall * > ()->errorContext() = NncErrorContextStack::current();
-                    yylhs.value.as < AsmInsnCall * > () = yystack_[0].value.as < AsmInsnCall * > ();
+  case 135: // asmConditional: IF STRING
+#line 667 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+                          { yylhs.value.as < std::optional<template_string> > () = template_string(yystack_[0].value.as < std::string > ()); }
+#line 2447 "./insnsel/parser.cpp"
+    break;
+
+  case 137: // asmInsn: ID OPAREN asmInsnArgs asmConditional
+#line 671 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+                                                     {
+                    NncErrorLocation l(yystack_[3].location + yystack_[1].location, "In the generated asm expression");
+                    yystack_[1].value.as < AsmInsnCall * > ()->mnemonic(yystack_[3].value.as < std::string > ());
+                    yystack_[1].value.as < AsmInsnCall * > ()->errorContext() = NncErrorContextStack::current();
+                    yylhs.value.as < AsmInsnCall * > () = yystack_[1].value.as < AsmInsnCall * > ();
+                    if ( yystack_[0].value.as < std::optional<template_string> > () )
+                        yylhs.value.as < AsmInsnCall * > ()->addCondition(*yystack_[0].value.as < std::optional<template_string> > ());
                 }
-#line 2201 "./insnsel/parser.cpp"
+#line 2460 "./insnsel/parser.cpp"
     break;
 
-  case 119: // asmInsn: ID
-#line 597 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
-                   {
+  case 138: // asmInsn: ID asmConditional
+#line 679 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+                                  {
+                  NncErrorLocation l(yystack_[1].location, "In the generated asm expression");
+                  yylhs.value.as < AsmInsnCall * > () = new AsmInsnCall(yystack_[1].value.as < std::string > ());
+                  if ( yystack_[0].value.as < std::optional<template_string> > () )
+                      yylhs.value.as < AsmInsnCall * > ()->addCondition(*yystack_[0].value.as < std::optional<template_string> > ());
+                }
+#line 2471 "./insnsel/parser.cpp"
+    break;
+
+  case 139: // asmInsn: STRING
+#line 685 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+                       {
                   NncErrorLocation l(yystack_[0].location, "In the generated asm expression");
-                  yylhs.value.as < AsmInsnCall * > () = new AsmInsnCall(yystack_[0].value.as < std::string > ());
+                  yylhs.value.as < AsmInsnCall * > () = new AsmInsnCall(template_string(yystack_[0].value.as < std::string > ()));
                 }
-#line 2210 "./insnsel/parser.cpp"
+#line 2480 "./insnsel/parser.cpp"
     break;
 
-  case 120: // asmInsnArgs: asmInsnArg moreAsmInsnArgs
-#line 603 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 140: // asmInsnArgs: asmInsnArg moreAsmInsnArgs
+#line 691 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                                            {
                     NncErrorLocation l(yystack_[1].location, "In the args of the asm instruction");
                     yystack_[1].value.as < AsmInsnArg * > ()->addToCall(*yystack_[0].value.as < AsmInsnCall * > ());
                     delete yystack_[1].value.as < AsmInsnArg * > ();
                     yylhs.value.as < AsmInsnCall * > () = yystack_[0].value.as < AsmInsnCall * > ();
                 }
-#line 2221 "./insnsel/parser.cpp"
+#line 2491 "./insnsel/parser.cpp"
     break;
 
-  case 121: // asmInsnArgs: CPAREN
-#line 609 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 141: // asmInsnArgs: CPAREN
+#line 697 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                        {
                   yylhs.value.as < AsmInsnCall * > () = new AsmInsnCall();
                 }
-#line 2229 "./insnsel/parser.cpp"
+#line 2499 "./insnsel/parser.cpp"
     break;
 
-  case 122: // moreAsmInsnArgs: COMMA asmInsnArgs
-#line 615 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 142: // moreAsmInsnArgs: COMMA asmInsnArgs
+#line 703 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                                   { yylhs.value.as < AsmInsnCall * > () = yystack_[0].value.as < AsmInsnCall * > (); }
-#line 2235 "./insnsel/parser.cpp"
+#line 2505 "./insnsel/parser.cpp"
     break;
 
-  case 123: // moreAsmInsnArgs: CPAREN
-#line 616 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 143: // moreAsmInsnArgs: CPAREN
+#line 704 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                        { yylhs.value.as < AsmInsnCall * > () = new AsmInsnCall(); }
-#line 2241 "./insnsel/parser.cpp"
+#line 2511 "./insnsel/parser.cpp"
     break;
 
-  case 124: // asmInsnArg: asmInsnExpr
-#line 619 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 144: // asmInsnArg: asmInsnExpr
+#line 707 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                             { yylhs.value.as < AsmInsnArg * > () = static_cast<AsmInsnArg *>(new AsmInsnPositionalArg(std::move(yystack_[0].value.as < template_string > ()))); }
-#line 2247 "./insnsel/parser.cpp"
+#line 2517 "./insnsel/parser.cpp"
     break;
 
-  case 125: // asmInsnArg: ID EQUAL asmInsnExpr
-#line 620 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 145: // asmInsnArg: ID EQUAL asmInsnExpr
+#line 708 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                                      {
                   yylhs.value.as < AsmInsnArg * > () = static_cast<AsmInsnArg *>(new AsmInsnNamedArg(yystack_[2].value.as < std::string > (), std::move(yystack_[0].value.as < template_string > ())));
                 }
-#line 2255 "./insnsel/parser.cpp"
+#line 2525 "./insnsel/parser.cpp"
     break;
 
-  case 126: // asmInsnExpr: VARNAME
-#line 625 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 146: // asmInsnExpr: VARNAME
+#line 713 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                         {
                     yylhs.value.as < template_string > () << yylhs.value.as < template_string > ().var(yystack_[0].value.as < std::string > ());
                 }
-#line 2263 "./insnsel/parser.cpp"
+#line 2533 "./insnsel/parser.cpp"
     break;
 
-  case 127: // asmInsnExpr: STRING
-#line 628 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 147: // asmInsnExpr: STRING
+#line 716 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                        {
                     template_string s(yystack_[0].value.as < std::string > ());
                     yylhs.value.as < template_string > () = std::move(s);
                 }
-#line 2272 "./insnsel/parser.cpp"
+#line 2542 "./insnsel/parser.cpp"
     break;
 
-  case 128: // paramDecl: ID EQUAL literal SEMICOLON
-#line 634 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 148: // paramDecl: ID EQUAL literal SEMICOLON
+#line 722 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                                            {
                     yylhs.value.as < ParamDecl * > () = new ParamDecl(yystack_[3].value.as < std::string > (), yystack_[1].value.as < Literal * > ());
                 }
-#line 2280 "./insnsel/parser.cpp"
+#line 2550 "./insnsel/parser.cpp"
     break;
 
-  case 129: // literal: STRING
-#line 639 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 149: // literal: STRING
+#line 727 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                         { yylhs.value.as < Literal * > () = new StringLiteral(yystack_[0].value.as < std::string > ()); }
-#line 2286 "./insnsel/parser.cpp"
+#line 2556 "./insnsel/parser.cpp"
     break;
 
-  case 130: // literal: NUMBER
-#line 640 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 150: // literal: NUMBER
+#line 728 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                         { yylhs.value.as < Literal * > () = new NumberLiteral(yystack_[0].value.as < std::uint32_t > ()); }
-#line 2292 "./insnsel/parser.cpp"
+#line 2562 "./insnsel/parser.cpp"
     break;
 
-  case 131: // literal: ID
-#line 641 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+  case 151: // literal: ID
+#line 729 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
                         { if ( yystack_[0].value.as < std::string > () == "true" ) yylhs.value.as < Literal * > () = new NumberLiteral(1);
                           else if ( yystack_[0].value.as < std::string > () == "false" ) yylhs.value.as < Literal * > () = new NumberLiteral(0);
                           else {
@@ -2300,11 +2570,11 @@ namespace nnc {
                             throw NncParseError("Invalid literal value " + yystack_[0].value.as < std::string > ());
                           }
                         }
-#line 2304 "./insnsel/parser.cpp"
+#line 2574 "./insnsel/parser.cpp"
     break;
 
 
-#line 2308 "./insnsel/parser.cpp"
+#line 2578 "./insnsel/parser.cpp"
 
             default:
               break;
@@ -2637,190 +2907,220 @@ namespace nnc {
 
 
 
-  const short parser::yypact_ninf_ = -144;
+  const short parser::yypact_ninf_ = -188;
 
   const signed char parser::yytable_ninf_ = -1;
 
   const short
   parser::yypact_[] =
   {
-      72,  -144,    11,    15,    17,    25,    30,    31,    50,    64,
-      66,   106,    72,  -144,  -144,  -144,  -144,  -144,  -144,  -144,
-    -144,  -144,    80,    81,    82,    73,    89,    91,    93,    94,
-      92,  -144,  -144,  -144,  -144,  -144,    95,    -2,    -3,    -8,
-      29,    -7,    -5,  -144,    77,    96,    79,    87,  -144,  -144,
-      -2,  -144,  -144,    -3,  -144,  -144,    85,  -144,  -144,    -8,
-      99,    83,    90,   104,    86,  -144,  -144,    29,  -144,  -144,
-    -144,   -10,  -144,    35,  -144,  -144,    98,   103,  -144,  -144,
-     105,   100,    56,  -144,  -144,   102,   107,  -144,     0,   108,
-     109,    19,   110,  -144,    97,    40,   101,   111,  -144,  -144,
-      35,  -144,  -144,  -144,    77,  -144,  -144,    79,  -144,  -144,
-    -144,   112,    85,  -144,     0,   116,   115,  -144,   114,   117,
-     118,  -144,  -144,   120,  -144,  -144,   119,    88,   124,  -144,
-      -7,  -144,    -1,   113,  -144,  -144,  -144,  -144,  -144,   115,
-      -9,  -144,     0,  -144,     0,  -144,  -144,    26,    19,  -144,
-    -144,  -144,   122,    40,  -144,  -144,  -144,  -144,  -144,   123,
-      57,     1,   118,  -144,    68,  -144,  -144,  -144,  -144,  -144,
-    -144,   121,  -144,  -144,    60,  -144,  -144,  -144,  -144,  -144,
-    -144,    -1,  -144,   126,   129,   130,   135,     0,  -144,  -144,
-    -144,   -18,    61,    52,  -144,    26,  -144,  -144,   125,   125,
-     125,    20,   131,  -144,   127,  -144,  -144,  -144,    -9,  -144,
-    -144,  -144,   125,   133,   134,   136,  -144,  -144,    20,  -144,
-    -144,  -144,   139,  -144,  -144,  -144,  -144,  -144,  -144,   128,
-    -144
+      38,  -188,   -15,    18,    37,    43,    54,    58,    60,    77,
+      47,   107,    38,  -188,  -188,  -188,  -188,  -188,  -188,  -188,
+    -188,  -188,    91,    92,    82,    99,   102,   103,   104,    97,
+      65,  -188,  -188,  -188,  -188,   100,    -1,    -8,    32,    68,
+      81,    34,  -188,  -188,  -188,   105,  -188,    86,   106,    88,
+    -188,  -188,    -1,  -188,  -188,    -8,  -188,  -188,    90,  -188,
+    -188,    32,   110,    95,    96,   115,    98,   108,  -188,  -188,
+      68,  -188,  -188,  -188,   -13,  -188,    52,  -188,  -188,  -188,
+     114,   111,   109,  -188,  -188,   112,   113,  -188,  -188,   116,
+     117,  -188,   -14,   119,   120,    -9,   118,   121,  -188,   122,
+      67,   126,   127,   123,  -188,  -188,    52,  -188,  -188,  -188,
+    -188,   125,  -188,    86,  -188,  -188,    88,    90,  -188,   -14,
+     -14,   128,   132,  -188,   129,   131,   130,  -188,  -188,  -188,
+      40,  -188,  -188,   134,   101,   135,   143,  -188,    81,  -188,
+      42,   133,   124,  -188,   139,   145,   138,  -188,  -188,  -188,
+     137,   147,    51,  -188,   -14,  -188,   -14,  -188,  -188,   140,
+      33,  -188,    -9,  -188,  -188,  -188,   146,  -188,    67,  -188,
+    -188,  -188,  -188,  -188,   149,    69,   142,     8,   136,  -188,
+     125,  -188,   130,   130,  -188,    79,  -188,  -188,  -188,  -188,
+    -188,  -188,  -188,   148,  -188,   156,    70,  -188,  -188,  -188,
+    -188,  -188,  -188,    42,  -188,   141,   153,   155,   157,   163,
+    -188,  -188,   -14,   158,   -14,  -188,  -188,  -188,    11,    71,
+     -19,  -188,  -188,    33,  -188,  -188,   154,   150,   150,   150,
+      -7,   160,  -188,  -188,  -188,   151,  -188,  -188,  -188,    51,
+    -188,  -188,  -188,   152,   150,   159,   162,   159,  -188,  -188,
+      -7,  -188,  -188,  -188,   169,  -188,   170,  -188,   161,   171,
+    -188,   172,  -188,   164,   173,  -188,  -188,  -188,  -188,   165,
+     175,  -188,  -188
   };
 
   const unsigned char
   parser::yydefact_[] =
   {
        0,     3,     0,     0,     0,     0,     0,     0,     0,     0,
-       0,     0,     0,    13,    12,     7,     5,     6,     8,     9,
-      11,    10,     0,     0,     0,     0,     0,     0,     0,     0,
-      43,     1,     4,    22,    21,    23,     0,     0,     0,     0,
-       0,    44,     0,    18,     0,    19,     0,     0,    31,    24,
-       0,    33,    14,     0,    16,    17,     0,    26,    25,     0,
-       0,     0,     0,     0,     0,    81,    80,     0,    90,    45,
-      46,     0,    42,     0,    51,    41,    37,     0,    20,    40,
-       0,    39,     0,    32,    15,    30,     0,    27,     0,     0,
-       0,     0,     0,    82,     0,     0,     0,     0,    54,    52,
-       0,    57,    56,    55,     0,    34,    35,     0,   129,   131,
-     130,     0,     0,    28,     0,     0,     0,    92,    95,    97,
-     100,    88,    89,   119,   116,    91,     0,     0,     0,    50,
-      44,    47,     0,     0,    53,    36,    38,   128,    29,     0,
-       0,    87,     0,    93,   101,    99,   103,     0,     0,    83,
-      84,    85,     0,     0,    49,    63,    64,    60,    65,     0,
-       0,     0,   100,   105,     0,   104,    94,   102,    96,   121,
-     127,     0,   126,   118,     0,   124,   117,    86,    48,    58,
-      62,     0,    59,    67,    69,    71,    75,   101,   107,   108,
-     109,     0,     0,     0,   123,     0,   120,    61,     0,     0,
-       0,     0,     0,    98,     0,   115,   113,   111,     0,   106,
-     125,   122,    74,     0,     0,     0,    77,    76,     0,    79,
-      66,   114,     0,   110,    73,    68,    70,    72,    78,     0,
-     112
+       0,     0,     0,    13,    12,     7,     6,     8,     9,    11,
+      10,     5,     0,     0,     0,     0,     0,     0,     0,    50,
+       0,     1,     4,    21,    22,     0,     0,     0,     0,     0,
+      51,     0,   149,   151,   150,     0,    18,     0,    19,     0,
+      30,    23,     0,    32,    14,     0,    16,    17,     0,    25,
+      24,     0,     0,     0,     0,     0,     0,     0,    94,    93,
+       0,   103,    52,    53,     0,    49,     0,    58,    48,   148,
+      37,     0,    44,    20,    47,     0,    46,    31,    15,    29,
+       0,    26,     0,     0,     0,     0,     0,     0,    95,     0,
+       0,     0,     0,     0,    61,    59,     0,    65,    64,    63,
+      62,     0,    33,     0,    35,    34,     0,     0,    27,     0,
+       0,     0,     0,   106,   109,   111,   117,   101,   102,   139,
+     136,   133,   104,     0,     0,     0,     0,    57,    51,    54,
+       0,     0,     0,    60,    42,     0,    40,    43,    45,    28,
+       0,     0,     0,   100,     0,   107,   118,   116,   120,     0,
+       0,   138,     0,    96,    97,    98,     0,   105,     0,    56,
+      74,    75,    71,    76,     0,     0,     0,     0,     0,    36,
+       0,    38,   117,   117,   122,     0,   121,   108,   119,   110,
+     135,   141,   147,     0,   146,   136,     0,   144,   134,    99,
+      55,    69,    73,     0,    70,     0,    80,    82,    84,    88,
+      41,    39,   118,   114,   118,   124,   125,   126,     0,     0,
+       0,   137,   143,     0,   140,    72,     0,     0,     0,     0,
+       0,     0,   112,   115,   113,     0,   132,   130,   128,     0,
+     123,   145,   142,     0,    87,    79,     0,    79,    90,    89,
+       0,    92,    77,   131,     0,   127,     0,    86,     0,     0,
+      83,     0,    91,     0,    68,    78,    81,    85,   129,     0,
+       0,    67,    66
   };
 
   const short
   parser::yypgoto_[] =
   {
-    -144,   145,  -144,  -144,   132,  -144,  -144,   -35,  -144,  -144,
-    -144,  -144,  -144,   137,  -144,    49,   138,  -144,    62,    63,
-    -144,  -144,  -144,  -144,    37,    18,  -144,    74,  -144,  -144,
-      -6,  -144,  -144,  -144,  -144,  -139,  -144,   -46,  -144,  -144,
-     140,  -144,  -144,  -144,  -108,  -144,  -143,    14,   -14,  -144,
-    -144,   -31,  -144,  -144,  -144,  -144,   -51,    33,  -144,   -16,
-    -144,  -144,   -11,   -38,  -144
+    -188,   144,  -188,  -188,    87,  -188,  -188,   -33,  -188,  -188,
+    -188,  -188,   166,  -188,    26,   167,  -188,    94,  -188,    19,
+    -188,  -188,  -188,    84,  -188,  -188,  -188,  -188,    72,    35,
+    -188,   168,  -188,  -188,  -188,  -188,     2,  -188,  -188,  -188,
+     -39,  -188,  -165,  -188,   -41,  -188,  -188,   174,  -188,  -188,
+    -188,  -108,  -188,  -154,    28,    89,  -187,  -188,  -188,   -27,
+    -188,  -188,  -188,  -188,   -50,    55,    21,  -188,    -5,  -188,
+    -188,     0,   -36,  -188
   };
 
-  const unsigned char
+  const short
   parser::yydefgoto_[] =
   {
-       0,    11,    12,    13,    52,    53,    14,    48,    15,    16,
-      17,    18,    19,    58,    59,    86,    49,    50,    77,    80,
-      81,    20,    42,    71,    72,   131,    75,    99,   100,   101,
-     159,   182,   160,   102,   186,   213,   202,   217,   218,    21,
-      66,   152,    67,   116,   117,   143,   118,   146,   168,   119,
-     120,   165,   191,   209,   192,   222,   206,   125,   126,   173,
-     196,   174,   175,    51,   111
+       0,    11,    12,    13,    54,    55,    14,    50,    15,    16,
+      17,    18,    60,    61,    90,    51,    52,    81,    82,   145,
+     181,   146,   114,    85,    86,    19,    41,    74,    75,   139,
+      78,   105,   106,   107,   270,   108,   174,   204,   175,   109,
+     259,   209,   245,   231,   249,   250,    20,    69,   166,    70,
+     122,   123,   155,   124,   212,   213,   189,   125,   126,   186,
+     218,   240,   219,   254,   237,   132,   161,   133,   195,   224,
+     196,   197,    21,    45
   };
 
-  const unsigned char
+  const short
   parser::yytable_[] =
   {
-      55,   167,    68,    54,    57,    65,   139,   204,    44,   155,
-     156,   183,   184,    94,    45,    55,    73,   163,    54,    45,
-      45,   114,    74,   205,    57,   157,    69,    70,    56,    68,
-     164,    95,    65,    46,   166,   103,    47,    47,   158,   115,
-     185,    45,   216,    60,   167,    61,    62,    63,    64,    22,
-      96,    45,   169,    23,    97,    24,   124,    98,   123,    47,
-     214,   215,   103,    25,   170,   171,   129,   172,    47,    26,
-      27,   130,     1,   224,    47,     2,     3,     4,     5,     6,
-       7,   141,     8,   180,     9,    10,   194,   207,   181,    28,
-     170,   195,   208,   172,   108,   109,   110,   149,   150,   151,
-     188,   189,   190,    29,   162,    30,    31,    33,    34,    35,
-      37,    36,    38,   124,    39,    40,    76,    41,    79,    82,
-      88,    89,    43,    78,    85,    91,   132,    92,    90,   104,
-     105,   107,   106,   112,   113,   121,   122,    45,   128,   137,
-     127,   140,   142,   161,   144,   147,   148,   145,   153,   177,
-     179,   198,   133,   193,   199,   200,   201,    32,   220,   225,
-     226,   138,   227,   219,   212,   229,   135,   154,   221,   205,
-     136,   178,   228,   203,   134,   197,   187,   223,   230,   211,
-     219,   176,   210,     0,     0,    84,     0,     0,    83,     0,
-       0,     0,     0,     0,     0,     0,    87,     0,     0,     0,
-       0,     0,     0,     0,     0,     0,     0,    93
+      53,    57,   188,    71,    56,    59,    68,   119,    47,   120,
+      99,   150,   151,    48,    48,   248,    53,   206,   207,    57,
+     192,    48,    56,   194,    22,   232,   121,   234,    59,   100,
+     129,   130,    10,    10,    71,    49,   235,    68,     1,    10,
+     110,     2,     3,     4,     5,     6,   187,     7,   208,     8,
+       9,   170,   171,   236,    48,    76,   159,    23,   188,   191,
+     188,    77,   131,   246,   247,   160,   101,   102,   172,    58,
+     110,   103,   192,   193,   104,   194,    24,   184,    10,   257,
+      30,    62,   173,    25,    63,    64,    65,    66,    67,   153,
+      48,   185,    10,   137,    26,   202,   222,   238,    27,   138,
+      28,   203,   223,   239,    42,    43,    44,    31,    10,   163,
+     164,   165,   215,   216,   217,    72,    73,    29,    33,    34,
+      36,    35,    40,    37,    38,    39,    80,    46,    84,   131,
+      89,    92,    79,    83,    93,    94,    95,   111,   112,   115,
+      96,   113,    88,   149,   118,   116,   127,   128,   117,   134,
+      97,   140,   141,   152,    48,   177,    32,   154,   156,   182,
+     157,   162,   167,   135,   136,   142,   144,   168,   178,   179,
+     180,   183,   159,   199,   205,   176,   201,   210,   227,   190,
+     228,   220,   229,   226,   230,   233,   243,   252,   260,   269,
+     244,   258,   256,   253,   251,   263,   264,   266,   267,   211,
+     148,   265,   272,   200,   271,   225,   236,   147,   261,   262,
+     169,   214,   255,   268,   251,   158,   221,   198,   242,    87,
+     241,     0,     0,     0,     0,     0,     0,    91,     0,     0,
+       0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
+       0,     0,     0,     0,    98,     0,     0,     0,     0,     0,
+       0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
+       0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
+       0,     0,     0,     0,   143
   };
 
   const short
   parser::yycheck_[] =
   {
-      38,   144,    40,    38,    39,    40,   114,    25,    10,    10,
-      11,    10,    11,    23,    22,    53,    21,    26,    53,    22,
-      22,    21,    27,    41,    59,    26,    33,    34,    36,    67,
-      39,    41,    67,    35,   142,    73,    39,    39,    39,    39,
-      39,    22,    22,    14,   187,    16,    17,    18,    19,    38,
-      15,    22,    26,    38,    19,    38,    91,    22,    39,    39,
-     199,   200,   100,    38,    38,    39,    26,    41,    39,    39,
-      39,    31,     0,   212,    39,     3,     4,     5,     6,     7,
-       8,   116,    10,    26,    12,    13,    26,    26,    31,    39,
-      38,    31,    31,    41,    38,    39,    40,     9,    10,    11,
-      32,    33,    34,    39,   139,    39,     0,    27,    27,    27,
-      21,    38,    21,   148,    21,    21,    39,    25,    39,    32,
-      21,    38,    27,    27,    39,    21,    25,    41,    38,    31,
-      27,    31,    27,    31,    27,    27,    27,    22,    41,    27,
-      30,    25,    28,    30,    27,    25,    27,    29,    24,    27,
-      27,    25,    41,    32,    25,    25,    21,    12,    27,    26,
-      26,   112,    26,   201,    39,    26,   104,   130,    41,    41,
-     107,   153,   218,   187,   100,   181,   162,   208,   229,   195,
-     218,   148,   193,    -1,    -1,    53,    -1,    -1,    50,    -1,
-      -1,    -1,    -1,    -1,    -1,    -1,    59,    -1,    -1,    -1,
-      -1,    -1,    -1,    -1,    -1,    -1,    -1,    67
+      36,    37,   156,    39,    37,    38,    39,    21,     9,    23,
+      23,   119,   120,    22,    22,    22,    52,     9,    10,    55,
+      39,    22,    55,    42,    39,   212,    40,   214,    61,    42,
+      39,    40,    40,    40,    70,    36,    25,    70,     0,    40,
+      76,     3,     4,     5,     6,     7,   154,     9,    40,    11,
+      12,     9,    10,    42,    22,    21,    16,    39,   212,    26,
+     214,    27,    95,   228,   229,    25,    14,    15,    26,    37,
+     106,    19,    39,    40,    22,    42,    39,    26,    40,   244,
+      33,    13,    40,    40,    16,    17,    18,    19,    20,   122,
+      22,    40,    40,    26,    40,    26,    26,    26,    40,    32,
+      40,    32,    32,    32,    39,    40,    41,     0,    40,     8,
+       9,    10,    33,    34,    35,    34,    35,    40,    27,    27,
+      21,    39,    25,    21,    21,    21,    40,    27,    40,   162,
+      40,    21,    27,    27,    39,    39,    21,    23,    27,    27,
+      42,    32,    55,   117,    27,    32,    27,    27,    32,    31,
+      42,    25,    25,    25,    22,    31,    12,    28,    27,    22,
+      30,    27,    27,    42,    42,    42,    41,    24,    29,    24,
+      32,    24,    16,    27,    32,    42,    27,    41,    25,    39,
+      25,    33,    25,    42,    21,    27,    32,    27,    26,    16,
+      40,    32,    40,    42,   230,    26,    26,    26,    26,   180,
+     116,    40,    27,   168,    39,   203,    42,   113,   247,   250,
+     138,   183,   239,   263,   250,   126,   195,   162,   223,    52,
+     220,    -1,    -1,    -1,    -1,    -1,    -1,    61,    -1,    -1,
+      -1,    -1,    -1,    -1,    -1,    -1,    -1,    -1,    -1,    -1,
+      -1,    -1,    -1,    -1,    70,    -1,    -1,    -1,    -1,    -1,
+      -1,    -1,    -1,    -1,    -1,    -1,    -1,    -1,    -1,    -1,
+      -1,    -1,    -1,    -1,    -1,    -1,    -1,    -1,    -1,    -1,
+      -1,    -1,    -1,    -1,   106
   };
 
   const signed char
   parser::yystos_[] =
   {
-       0,     0,     3,     4,     5,     6,     7,     8,    10,    12,
-      13,    43,    44,    45,    48,    50,    51,    52,    53,    54,
-      63,    81,    38,    38,    38,    38,    39,    39,    39,    39,
-      39,     0,    43,    27,    27,    27,    38,    21,    21,    21,
-      21,    25,    64,    27,    10,    22,    35,    39,    49,    58,
-      59,   105,    46,    47,    49,   105,    36,    49,    55,    56,
-      14,    16,    17,    18,    19,    49,    82,    84,   105,    33,
-      34,    65,    66,    21,    27,    68,    39,    60,    27,    39,
-      61,    62,    32,    58,    46,    39,    57,    55,    21,    38,
-      38,    21,    41,    82,    23,    41,    15,    19,    22,    69,
-      70,    71,    75,   105,    31,    27,    27,    31,    38,    39,
-      40,   106,    31,    27,    21,    39,    85,    86,    88,    91,
-      92,    27,    27,    39,    49,    99,   100,    30,    41,    26,
-      31,    67,    25,    41,    69,    60,    61,    27,    57,    86,
-      25,    49,    28,    87,    27,    29,    89,    25,    27,     9,
-      10,    11,    83,    24,    66,    10,    11,    26,    39,    72,
-      74,    30,    49,    26,    39,    93,    86,    88,    90,    26,
-      38,    39,    41,   101,   103,   104,    99,    27,    67,    27,
-      26,    31,    73,    10,    11,    39,    76,    89,    32,    33,
-      34,    94,    96,    32,    26,    31,   102,    72,    25,    25,
-      25,    21,    78,    90,    25,    41,    98,    26,    31,    95,
-     104,   101,    39,    77,    77,    77,    22,    79,    80,   105,
-      27,    41,    97,    93,    77,    26,    26,    26,    79,    26,
-      98
+       0,     0,     3,     4,     5,     6,     7,     9,    11,    12,
+      40,    44,    45,    46,    49,    51,    52,    53,    54,    68,
+      89,   115,    39,    39,    39,    40,    40,    40,    40,    40,
+      33,     0,    44,    27,    27,    39,    21,    21,    21,    21,
+      25,    69,    39,    40,    41,   116,    27,     9,    22,    36,
+      50,    58,    59,   115,    47,    48,    50,   115,    37,    50,
+      55,    56,    13,    16,    17,    18,    19,    20,    50,    90,
+      92,   115,    34,    35,    70,    71,    21,    27,    73,    27,
+      40,    60,    61,    27,    40,    66,    67,    58,    47,    40,
+      57,    55,    21,    39,    39,    21,    42,    42,    90,    23,
+      42,    14,    15,    19,    22,    74,    75,    76,    78,    82,
+     115,    23,    27,    32,    65,    27,    32,    32,    27,    21,
+      23,    40,    93,    94,    96,   100,   101,    27,    27,    39,
+      40,    50,   108,   110,    31,    42,    42,    26,    32,    72,
+      25,    25,    42,    74,    41,    62,    64,    60,    66,    57,
+      94,    94,    25,    50,    28,    95,    27,    30,    98,    16,
+      25,   109,    27,     8,     9,    10,    91,    27,    24,    71,
+       9,    10,    26,    40,    79,    81,    42,    31,    29,    24,
+      32,    63,    22,    24,    26,    40,   102,    94,    96,    99,
+      39,    26,    39,    40,    42,   111,   113,   114,   108,    27,
+      72,    27,    26,    32,    80,    32,     9,    10,    40,    84,
+      41,    62,    97,    98,    97,    33,    34,    35,   103,   105,
+      33,   109,    26,    32,   112,    79,    42,    25,    25,    25,
+      21,    86,    99,    27,    99,    25,    42,   107,    26,    32,
+     104,   114,   111,    32,    40,    85,    85,    85,    22,    87,
+      88,   115,    27,    42,   106,   102,    40,    85,    32,    83,
+      26,    83,    87,    26,    26,    40,    26,    26,   107,    16,
+      77,    39,    27
   };
 
   const signed char
   parser::yyr1_[] =
   {
-       0,    42,    43,    43,    43,    44,    44,    44,    44,    44,
-      44,    44,    44,    44,    45,    46,    46,    47,    48,    49,
-      49,    50,    51,    52,    53,    54,    55,    55,    56,    57,
-      57,    58,    58,    59,    59,    59,    60,    60,    61,    61,
-      62,    63,    64,    64,    65,    65,    65,    66,    66,    67,
-      67,    68,    68,    69,    69,    70,    70,    70,    71,    72,
-      72,    73,    73,    74,    74,    74,    75,    76,    76,    76,
-      76,    76,    76,    77,    77,    78,    78,    79,    79,    80,
-      81,    82,    82,    83,    83,    83,    84,    84,    84,    84,
-      84,    84,    85,    86,    87,    87,    88,    88,    88,    89,
-      89,    90,    90,    91,    92,    93,    93,    94,    94,    94,
-      95,    95,    96,    96,    97,    98,    99,    99,   100,   100,
-     101,   101,   102,   102,   103,   103,   104,   104,   105,   106,
-     106,   106
+       0,    43,    44,    44,    44,    45,    45,    45,    45,    45,
+      45,    45,    45,    45,    46,    47,    47,    48,    49,    50,
+      50,    51,    52,    53,    54,    55,    55,    56,    57,    57,
+      58,    58,    59,    59,    59,    60,    61,    61,    62,    63,
+      63,    64,    64,    65,    65,    66,    66,    67,    68,    69,
+      69,    70,    70,    70,    71,    71,    72,    72,    73,    73,
+      74,    74,    75,    75,    75,    75,    76,    77,    77,    78,
+      79,    79,    80,    80,    81,    81,    81,    82,    83,    83,
+      84,    84,    84,    84,    84,    84,    85,    85,    86,    86,
+      87,    87,    88,    89,    90,    90,    91,    91,    91,    92,
+      92,    92,    92,    92,    92,    92,    93,    94,    95,    95,
+      96,    96,    96,    96,    97,    97,    98,    98,    99,    99,
+     100,   101,   102,   102,   103,   103,   103,   104,   104,   105,
+     105,   106,   107,   108,   108,   109,   109,   110,   110,   110,
+     111,   111,   112,   112,   113,   113,   114,   114,   115,   116,
+     116,   116
   };
 
   const signed char
@@ -2828,16 +3128,18 @@ namespace nnc {
   {
        0,     2,     0,     1,     2,     1,     1,     1,     1,     1,
        1,     1,     1,     1,     4,     2,     1,     1,     4,     1,
-       2,     3,     3,     3,     4,     4,     1,     2,     3,     3,
-       1,     1,     2,     1,     3,     3,     3,     1,     3,     1,
-       1,     4,     2,     0,     0,     1,     1,     3,     5,     2,
-       1,     1,     2,     2,     1,     1,     1,     1,     4,     2,
-       1,     2,     1,     1,     1,     1,     6,     1,     4,     1,
-       4,     1,     4,     2,     1,     0,     2,     1,     2,     1,
-       4,     1,     2,     1,     1,     1,     5,     4,     3,     3,
-       1,     3,     1,     2,     2,     0,     3,     1,     5,     1,
-       0,     0,     1,     2,     3,     1,     3,     1,     1,     1,
-       2,     1,     5,     2,     1,     1,     1,     3,     3,     1,
+       2,     3,     3,     4,     4,     1,     2,     3,     3,     1,
+       1,     2,     1,     3,     3,     2,     4,     1,     2,     2,
+       0,     3,     1,     2,     0,     3,     1,     1,     4,     2,
+       0,     0,     1,     1,     3,     5,     2,     1,     1,     2,
+       2,     1,     1,     1,     1,     1,    10,     2,     0,     4,
+       2,     1,     2,     1,     1,     1,     1,     6,     2,     0,
+       1,     5,     1,     4,     1,     5,     2,     1,     0,     2,
+       1,     2,     1,     4,     1,     2,     1,     1,     1,     5,
+       4,     3,     3,     1,     3,     4,     1,     2,     2,     0,
+       3,     1,     5,     5,     1,     2,     1,     0,     0,     1,
+       2,     3,     1,     3,     1,     1,     1,     2,     1,     5,
+       2,     1,     1,     1,     3,     2,     0,     4,     2,     1,
        2,     1,     2,     1,     1,     3,     1,     1,     4,     1,
        1,     1
   };
@@ -2849,29 +3151,32 @@ namespace nnc {
   const char*
   const parser::yytname_[] =
   {
-  "EOF", "error", "\"invalid token\"", "ARCHITECTURE", "CHEADER",
-  "INCLUDE", "CODE", "REGCLASS", "CTYPE", "REGTYPE", "REGISTER",
-  "CONSTANT", "INSNRULE", "INSN", "PATTERN", "CONSTRUCTOR", "IF", "CHECK",
-  "ASM", "VAR", "ALIAS", "OBRACE", "CBRACE", "OBRACKET", "CBRACKET",
-  "OPAREN", "CPAREN", "SEMICOLON", "BAR", "QUESTIONMARK", "COLON", "COMMA",
+  "EOF", "error", "\"invalid token\"", "CHEADER", "INCLUDE", "CODE",
+  "REGCLASS", "CTYPE", "REGTYPE", "REGISTER", "CONSTANT", "INSNRULE",
+  "INSN", "PATTERN", "CONSTRUCTOR", "INTERSECT", "IF", "CHECK", "ASM",
+  "VAR", "ALIAS", "OBRACE", "CBRACE", "OBRACKET", "CBRACKET", "OPAREN",
+  "CPAREN", "SEMICOLON", "BAR", "DASH", "QUESTIONMARK", "COLON", "COMMA",
   "EQUAL", "OUTPUT", "INOUT", "TYPE", "CLOBBERS", "WHITESPACE", "STRING",
   "ID", "NUMBER", "VARNAME", "$accept", "file", "decl", "ctypeDecl",
   "ctypeBody", "ctypeBodyDecl", "codeDecl", "cbraceSemi", "cheaderDecl",
-  "architectureDecl", "includeDecl", "regclassDecl", "registerDecl",
-  "registerBody", "regBodyDecl", "clobberRegisterList", "regclassBody",
-  "regclassBodyDecl", "regclassRegDecl", "regclassTypeDecl", "regtype",
-  "insnDecl", "insnArgsDecl", "insnArgDeclDirection", "insnArgsDeclList",
-  "moreInsnArgsDeclList", "insnBody", "insnBodyDecls", "insnBodyDecl",
-  "constructorDecl", "constructorArgList", "moreConstructorArgs",
-  "constructorArgTy", "insnVarDecl", "insnVarTyDecl", "rtlType",
-  "insnVarDeclBody", "insnVarDeclBodyDecls", "insnVarDeclBodyDecl",
-  "insnRuleDecl", "insnRuleBody", "insnRuleVarType", "insnRuleBodyDecl",
-  "patternsDecl", "patternsDisjunction", "morePatternsDisjunction",
-  "patternsConjunction", "optionalPattern", "morePatternsConjunction",
+  "includeDecl", "regclassDecl", "registerDecl", "registerBody",
+  "regBodyDecl", "clobberRegisterList", "regclassBody", "regclassBodyDecl",
+  "regclassRegDecl", "regclassRegDeclMember", "regclassRange",
+  "regclassRangeMore", "regclassRangeElem", "regclassRegDeclMore",
+  "regclassTypeDecl", "regtype", "insnDecl", "insnArgsDecl",
+  "insnArgDeclDirection", "insnArgsDeclList", "moreInsnArgsDeclList",
+  "insnBody", "insnBodyDecls", "insnBodyDecl", "intersectDecl",
+  "postfixIfDecl", "constructorDecl", "constructorArgList",
+  "moreConstructorArgs", "constructorArgTy", "insnVarDecl",
+  "optionalRegClass", "insnVarTyDecl", "rtlType", "insnVarDeclBody",
+  "insnVarDeclBodyDecls", "insnVarDeclBodyDecl", "insnRuleDecl",
+  "insnRuleBody", "insnRuleVarType", "insnRuleBodyDecl", "patternsDecl",
+  "patternsDisjunction", "morePatternsDisjunction", "patternsConjunction",
+  "optionalPatternSemicolon", "optionalPattern", "morePatternsConjunction",
   "baseInsnPattern", "simpleInsnPattern", "insnArgs",
   "insnArgDirectionality", "moreInsnArgs", "insnArgPattern",
-  "insnArgTypePattern", "insnArgExprPattern", "asmDecl", "asmInsn",
-  "asmInsnArgs", "moreAsmInsnArgs", "asmInsnArg", "asmInsnExpr",
+  "insnArgTypePattern", "insnArgExprPattern", "asmDecl", "asmConditional",
+  "asmInsn", "asmInsnArgs", "moreAsmInsnArgs", "asmInsnArg", "asmInsnExpr",
   "paramDecl", "literal", YY_NULLPTR
   };
 #endif
@@ -2881,20 +3186,22 @@ namespace nnc {
   const short
   parser::yyrline_[] =
   {
-       0,   167,   167,   168,   169,   172,   173,   174,   175,   176,
-     177,   178,   179,   180,   183,   188,   193,   196,   199,   205,
-     206,   209,   215,   220,   227,   234,   242,   243,   250,   254,
-     259,   265,   266,   273,   274,   275,   279,   284,   292,   297,
-     304,   308,   317,   318,   322,   323,   324,   328,   333,   341,
-     342,   345,   346,   349,   354,   357,   358,   359,   363,   372,
-     376,   380,   381,   385,   386,   387,   394,   402,   403,   408,
-     409,   414,   421,   432,   438,   444,   445,   448,   449,   458,
-     461,   468,   469,   479,   480,   481,   485,   490,   491,   492,
-     493,   494,   497,   500,   506,   509,   513,   516,   519,   528,
-     529,   533,   534,   538,   545,   550,   551,   558,   559,   560,
-     563,   564,   567,   570,   575,   579,   583,   584,   591,   597,
-     603,   609,   615,   616,   619,   620,   625,   628,   634,   639,
-     640,   641
+       0,   178,   178,   179,   180,   183,   184,   185,   186,   187,
+     188,   189,   190,   191,   194,   199,   204,   207,   210,   216,
+     217,   220,   225,   232,   239,   245,   246,   252,   256,   261,
+     267,   268,   275,   276,   277,   280,   289,   294,   297,   305,
+     307,   311,   320,   324,   325,   329,   334,   341,   345,   354,
+     355,   359,   360,   361,   365,   370,   378,   379,   382,   383,
+     386,   391,   394,   395,   396,   397,   400,   408,   411,   415,
+     424,   428,   432,   433,   437,   438,   439,   446,   455,   456,
+     459,   460,   467,   468,   473,   480,   493,   499,   505,   506,
+     509,   510,   519,   522,   529,   530,   540,   541,   542,   546,
+     551,   552,   553,   554,   555,   556,   561,   564,   570,   573,
+     577,   580,   583,   589,   599,   600,   604,   605,   609,   610,
+     614,   621,   626,   627,   634,   635,   636,   639,   640,   643,
+     646,   651,   655,   659,   660,   667,   668,   671,   679,   685,
+     691,   697,   703,   704,   707,   708,   713,   716,   722,   727,
+     728,   729
   };
 
   void
@@ -2927,9 +3234,9 @@ namespace nnc {
 
 #line 10 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
 } // nnc
-#line 2931 "./insnsel/parser.cpp"
+#line 3238 "./insnsel/parser.cpp"
 
-#line 650 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
+#line 738 "/home/tathougies/Projects/nnc/./insnsel/parser.y"
 
 
 void nnc::parser::error(const location_type &l, const std::string &m) {

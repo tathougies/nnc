@@ -82,12 +82,15 @@ namespace nnc {
 
   namespace compile {
     class RtlFunction;
+    class RtlRegisterMapper;
 
     class RtlJump {
     public:
-      typedef std::vector< std::shared_ptr<RtlVariable> >  args_type;
+      typedef std::vector< std::shared_ptr<RtlVariable> > args_type;
 
       RtlJump(const RtlBlockName &to);
+      RtlJump(RtlJump &&j) =default;
+      RtlJump(const RtlJump &j) =default;
 
       void push_argument(std::shared_ptr<RtlVariable> arg);
 
@@ -97,6 +100,8 @@ namespace nnc {
       inline const RtlBlockName &to() const { return m_to; }
 
       inline const args_type &arguments() const { return m_args; }
+      inline args_type &arguments() { return m_args; }
+      inline void clear_arguments() { m_args.clear(); }
 
     private:
       RtlBlockName m_to;
@@ -107,33 +112,58 @@ namespace nnc {
 
     class RtlJumpIterator {
     public:
-      typedef std::map< std::shared_ptr<RtlVariable>, RtlJump >::iterator iterator;
+      RtlJumpIterator(const RtlJumpIterator &o) =default;
+      RtlJumpIterator(RtlJumpIterator &&o) =default;
 
-      iterator begin();
-      iterator end();
+      typedef std::pair< const std::shared_ptr<RtlVariable>, RtlJump > value_type;
+      typedef int difference_type;
+      typedef std::pair< const std::shared_ptr<RtlVariable>, RtlJump > &reference;
+      typedef std::pair< const std::shared_ptr<RtlVariable>, RtlJump > *pointer;
+      typedef RtlJumpIterator iterator;
+      typedef std::input_iterator_tag iterator_category;
+
+      RtlJumpIterator begin();
+      RtlJumpIterator end();
+
+      bool operator==(const RtlJumpIterator &i) const;
+      inline bool operator!=(const RtlJumpIterator &i) const { return !(*this == i); }
+
+      inline RtlJumpIterator operator++(int i) {
+        RtlJumpIterator r(*this);
+        ++(*this);
+        return r;
+      }
+      RtlJumpIterator &operator++();
+
+      value_type &operator*();
+      value_type *operator->();
+
+      RtlJumpIterator &operator=(const RtlJumpIterator &o) =default;
+      RtlJumpIterator &operator=(RtlJumpIterator &&o) =default;
 
     private:
-      RtlJumpIterator(RtlBasicBlock &blk);
+      typedef std::map< std::shared_ptr<RtlVariable>, RtlJump >::iterator underlying;
+
+      RtlJumpIterator(RtlBasicBlock &blk, const underlying &u);
 
       RtlBasicBlock &m_block;
+
+      underlying m_underlying, m_unconditional;
+
       friend class RtlBasicBlock;
     };
 
-    class RtlBasicBlock {
+    class RtlOpBuilder {
     public:
-      RtlBasicBlock(RtlFunction &fn, const RtlBlockName &nm);
-      ~RtlBasicBlock();
+      virtual ~RtlOpBuilder();
+      virtual RtlFunction &function() const =0;
 
-      inline RtlBlockName name() const { return m_name; }
-      inline RtlFunction &function() const { return m_function; }
-
-      // Add input. Marks the given variable as having
-      std::shared_ptr<RtlVariable> addInput(const std::string &namePrefix,
-                                            std::shared_ptr<RtlType> type);
+      virtual void clear() =0;
+      virtual void op(std::unique_ptr<RtlOp> &&op) =0;
 
       template<typename It>
       void replaceOps(const It &begin, const It &end) {
-        m_ops.clear();
+        clear();
         addOps(begin, end);
       }
 
@@ -144,10 +174,6 @@ namespace nnc {
         }
       }
 
-      void op(std::unique_ptr<RtlOp> &&op);
-
-      // Add tail call
-
       template<typename T, typename... Args>
       T &emplace_op(Args &&... args) {
         auto newOp(std::make_unique<T>(std::forward<Args>(args)...));
@@ -155,6 +181,25 @@ namespace nnc {
         op(std::move(newOp));
         return ret;
       }
+    };
+
+    class RtlBasicBlock : public RtlOpBuilder {
+    public:
+      RtlBasicBlock(RtlFunction &fn, const RtlBlockName &nm);
+      virtual ~RtlBasicBlock();
+
+      inline RtlBlockName name() const { return m_name; }
+      virtual RtlFunction &function() const;
+
+      virtual void op(std::unique_ptr<RtlOp> &&op);
+      virtual void clear();
+
+      inline int endTime() const { return m_ops.size(); }
+
+      // Add input. Marks the given variable as having
+      std::shared_ptr<RtlVariable> addInput(const std::string &namePrefix,
+                                            std::shared_ptr<RtlType> type);
+
 
       void cast(std::shared_ptr<RtlVariable> from, std::shared_ptr<RtlVariable> to);
 
@@ -162,10 +207,19 @@ namespace nnc {
       iterator begin();
       iterator end();
 
+      typedef std::list< std::unique_ptr<RtlOp> >::const_iterator const_iterator;
+      const_iterator begin() const;
+      const_iterator end() const;
+
       RtlJumpIterator jumps();
 
       typedef std::vector< std::shared_ptr<RtlVariable> > inputs_type;
       inline const inputs_type &inputs() const { return m_inputs; }
+      inline std::size_t arity() const { return inputs().size(); }
+
+      inline void replace_jumps(std::map<std::shared_ptr<RtlVariable>, RtlJump> newJumps) {
+        m_jumps = std::move(newJumps);
+      }
 
       inline RtlJump &jump(const RtlBlockName &to) { return jump(nullptr, to); }
       RtlJump &jump(std::shared_ptr<RtlVariable> cond, const RtlBlockName &to);
@@ -258,6 +312,24 @@ namespace nnc {
 
       friend class RtlBlockIterator;
     };
+
+    class OperandPrinter : public virtual RtlOperandVisitor {
+    public:
+      OperandPrinter(RtlFunction &fn, std::ostream &out);
+      virtual ~OperandPrinter();
+
+      virtual void operand(const std::string &name, std::shared_ptr<RtlVariable> var, bool input, bool output) override;
+      virtual void operand(const std::string &name, std::shared_ptr<RtlType> ty, const void *l, std::size_t lsz) override;
+      virtual void operand(const std::string &name, const RtlBlockName &dest) override;
+
+    protected:
+      void next();
+
+      std::ostream &m_out;
+      bool m_first;
+    };
+
+    void dumpOp(RtlOp &o, RtlFunction &f, std::ostream &out);
   }
 }
 

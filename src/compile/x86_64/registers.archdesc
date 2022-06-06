@@ -21,6 +21,43 @@ regclass ad {
    type i64;
 }
 
+regclass avx {
+   doc = "XMM/YMM/ZMM registers";
+
+   register zmm[0-15];
+   type f512;
+}
+
+regclass flags {
+   doc = "EFlags registers";
+   register sf, pf, zf, cf;
+   type i1;
+}
+
+regclass sf {
+  doc = "Sign flag";
+  register sf;
+  type i1;
+}
+
+regclass pf {
+  doc = "Parity flag";
+  register pf;
+  type i1;
+}
+
+regclass zf {
+  doc = "Zero flag";
+  register zf;
+  type i1;
+}
+
+regclass cf {
+  doc = "Carry flag";
+  register cf;
+  type i1;
+}
+
 //register al {
 //  clobbers rax;
 //}
