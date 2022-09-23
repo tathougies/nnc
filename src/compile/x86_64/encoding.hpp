@@ -68,6 +68,28 @@ namespace nnc::arch::x86_64 {
       Reg111 = 0x07
     };
 
+    enum Scale : std::uint8_t { Scale0 = 0x0, Scale2 = 0x1, Scale4 = 0x2, Scale8 = 0x3 };
+    enum Index : std::uint8_t {
+      IndexRax = 0x0,
+      IndexRcx = 0x1,
+      IndexRdx = 0x2,
+      IndexRbx = 0x3,
+      IndexNone = 0x4,
+      IndexRbp = 0x5,
+      IndexRsi = 0x6,
+      IndexRdi = 0x7
+    };
+    enum Base : std::uint8_t {
+      BaseRax = 0x0,
+      BaseRcx = 0x1,
+      BaseRdx = 0x2,
+      BaseRbx = 0x3,
+      BaseRsp = 0x4,
+      BaseNone = 0x5,
+      BaseRsi = 0x6,
+      BaseRdi = 0x7
+    };
+
     enum SimdPrefix : std::uint8_t {
       simd_packed_single = 0,
       simd_packed_double = 0x66,
@@ -93,6 +115,8 @@ namespace nnc::arch::x86_64 {
                   const compile::RegClass &cls,
                   const compile::RtlVariablePtr &b);
     opcode &modrm(std::uint8_t mod, std::uint8_t rm);
+
+    opcode &sib(std::uint8_t ss, std::uint8_t index, std::uint8_t base);
 
     opcode &modrm_reg(const compile::RtlRegisterMapper &regs,
                       const compile::RegClass &cls,
@@ -185,7 +209,7 @@ namespace nnc::arch::x86_64 {
   public:
     opcode_builder(const compile::RtlRegisterMapper &inputs,
                    const compile::RtlRegisterMapper &outputs,
-                   std::ostream &out);
+                   compile::BytecodeEmitter &out);
 
     void c_xor(const types::modrm &dest, const types::modrm &a, const types::modrmimm &b);
     void test(const compile::RtlVariablePtr &a, const compile::RtlVariablePtr &b,
@@ -194,6 +218,8 @@ namespace nnc::arch::x86_64 {
     void cmp(const types::modrm &a, const types::modrmimm &b,
              const compile::RtlVariablePtr &sign, const compile::RtlVariablePtr &carry);
     void mov(const types::modrm &dst, const types::modrmimm &src);
+    void movzx(const compile::RtlVariablePtr &dst,
+               const types::modrm &src);
     void lea(const compile::RtlVariablePtr &dst, const types::modrm &src);
     void dec(const types::modrm &dst, const types::modrm &src);
     void inc(const types::modrm &dst, const types::modrm &src);
@@ -202,13 +228,19 @@ namespace nnc::arch::x86_64 {
     void imul(const types::modrm &dst, const types::modrm &a, const types::modrmimm &b);
     void addss(const compile::RtlVariablePtr &dst, const compile::RtlVariablePtr &a,
                const types::modrm &b);
-    void movss(const types::modrm &dst, const types::modrm &src);
+    void mulss(const compile::RtlVariablePtr &dst, const compile::RtlVariablePtr &a,
+               const types::modrm &b);
+    void movss(const types::modrm &dst, const types::modrmimm &src);
+    void cvtsi2ss(const compile::RtlVariablePtr &dst, const types::modrm &src);
 
   private:
     void emit(const opcode &e);
 
+    std::uintptr_t allocate_constant(const types::imm &i) const;
+    void fixup(std::unique_ptr<compile::BytecodeFixup> &&fixup);
+
     const compile::RtlRegisterMapper &m_inputs, &m_outputs;
-    std::ostream &m_out;
+    compile::BytecodeEmitter &m_out;
   };
 
   class jumps : public compile::InsnEncoder {
@@ -223,13 +255,13 @@ namespace nnc::arch::x86_64 {
 
     virtual std::unique_ptr<compile::JumpInsn> generic_jump(std::optional<compile::Register> v) const;
 
-    virtual void funret(std::ostream &out) const override;
-    virtual void preamble(std::ostream &out) const;
-    virtual void postamble(std::ostream &out) const;
+    virtual void funret(compile::BytecodeEmitter &out) const override;
+    virtual void preamble(compile::BytecodeEmitter &out) const;
+    virtual void postamble(compile::BytecodeEmitter &out) const;
 
     virtual const compile::RegClass &jump_cond_class() const;
 
-    virtual void copy(std::ostream &o, const compile::RtlRegisterMapper &inputs, const compile::RtlVariablePtr &var, const compile::VirtualRegister &dest) const override;
+    virtual void copy(compile::BytecodeEmitter &o, const compile::RtlRegisterMapper &inputs, const compile::RtlVariablePtr &var, const compile::VirtualRegister &dest) const override;
   };
 };
 

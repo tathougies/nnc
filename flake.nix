@@ -8,7 +8,7 @@
 
   outputs = { self, nixpkgs, flake-utils, ... }:
     flake-utils.lib.eachDefaultSystem (system:
-      let pkgs = import nixpkgs { inherit system; }
+      let pkgs = import nixpkgs { inherit system; };
       in rec {
         packages = rec {
           nnc = pkgs.stdenv.mkDerivation {
@@ -21,7 +21,8 @@
         };
 
         devShell = packages.default.overrideAttrs (oldAttrs: {
-          nativeBuildInputs = oldAttrs.nativeBuildInputs ++ with pkgs; [gdb graphviz];
+          nativeBuildInputs = oldAttrs.nativeBuildInputs ++ (with pkgs; [gdb graphviz ccls protobuf ]);
         });
+      }
     );
 }

@@ -10,11 +10,17 @@ namespace nnc {
   namespace executor {
     class BasicTensorInput {
     public:
+      BasicTensorInput(const std::string &baseName);
       virtual ~BasicTensorInput();
 
       virtual bool isScalar() const =0;
       virtual int dims() const =0;
       virtual const DataType &dataType() const =0;
+
+      inline const std::string &baseName() const { return m_baseName; }
+
+    private:
+      std::string m_baseName;
     };
 
     typedef std::shared_ptr<BasicTensorInput> BasicTensorInputPtr;
@@ -55,7 +61,7 @@ namespace nnc {
       void fullIndex(std::vector< std::shared_ptr<BasicTensorInput> > &ix) const;
 
       virtual BasicTensorInputPtr tensor(const DataType &dt, const TensorShape &sh) const =0;
-      virtual BasicTensorInputPtr scalar(const DataType &dt) const;
+      virtual BasicTensorInputPtr scalar(const std::string &basename, const DataType &dt) const;
     };
 
     class BasicTensorOp {

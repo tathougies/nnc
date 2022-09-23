@@ -22,6 +22,7 @@ ctype modrm {
     $member = $member.indexedBy($new);
   ]];
   acceptsRtlType = true;
+  checkPure = [[ (!$member.isMemoryRef()) ]];
 }
 
 ctype regmem {
@@ -58,4 +59,5 @@ ctype modrmimm {
     if ( $member.isRegister() )
       $member = $member.reg().indexedBy($new);
   ]];
+  checkPure = [[ (!$member.isMemoryRef() ]];
 }

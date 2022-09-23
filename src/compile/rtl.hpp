@@ -7,6 +7,9 @@
 #include <map>
 #include <unordered_map>
 #include <unordered_set>
+#include <queue>
+#include <stack>
+#include <iostream>
 
 #include "compile/rtl_types.hpp"
 #include "compile/rtl_ops_base.hpp"
@@ -110,47 +113,20 @@ namespace nnc {
 
     class RtlBasicBlock;
 
+    template<typename Jumps, typename Underlying>
     class RtlJumpIterator {
-    public:
-      RtlJumpIterator(const RtlJumpIterator &o) =default;
-      RtlJumpIterator(RtlJumpIterator &&o) =default;
-
-      typedef std::pair< const std::shared_ptr<RtlVariable>, RtlJump > value_type;
-      typedef int difference_type;
-      typedef std::pair< const std::shared_ptr<RtlVariable>, RtlJump > &reference;
-      typedef std::pair< const std::shared_ptr<RtlVariable>, RtlJump > *pointer;
-      typedef RtlJumpIterator iterator;
-      typedef std::input_iterator_tag iterator_category;
-
-      RtlJumpIterator begin();
-      RtlJumpIterator end();
-
-      bool operator==(const RtlJumpIterator &i) const;
-      inline bool operator!=(const RtlJumpIterator &i) const { return !(*this == i); }
-
-      inline RtlJumpIterator operator++(int i) {
-        RtlJumpIterator r(*this);
-        ++(*this);
-        return r;
-      }
-      RtlJumpIterator &operator++();
-
-      value_type &operator*();
-      value_type *operator->();
-
-      RtlJumpIterator &operator=(const RtlJumpIterator &o) =default;
-      RtlJumpIterator &operator=(RtlJumpIterator &&o) =default;
-
     private:
-      typedef std::map< std::shared_ptr<RtlVariable>, RtlJump >::iterator underlying;
+      RtlJumpIterator(Jumps &jumps)
+        : m_jumps(jumps) {
+      }
 
-      RtlJumpIterator(RtlBasicBlock &blk, const underlying &u);
-
-      RtlBasicBlock &m_block;
-
-      underlying m_underlying, m_unconditional;
+      Jumps &m_jumps;
 
       friend class RtlBasicBlock;
+
+    public:
+      Underlying begin() { return m_jumps.rbegin(); }
+      Underlying end() { return m_jumps.rend(); }
     };
 
     class RtlOpBuilder {
@@ -195,6 +171,7 @@ namespace nnc {
       virtual void clear();
 
       inline int endTime() const { return m_ops.size(); }
+      bool isEntryPoint() const;
 
       // Add input. Marks the given variable as having
       std::shared_ptr<RtlVariable> addInput(const std::string &namePrefix,
@@ -210,8 +187,6 @@ namespace nnc {
       typedef std::list< std::unique_ptr<RtlOp> >::const_iterator const_iterator;
       const_iterator begin() const;
       const_iterator end() const;
-
-      RtlJumpIterator jumps();
 
       typedef std::vector< std::shared_ptr<RtlVariable> > inputs_type;
       inline const inputs_type &inputs() const { return m_inputs; }
@@ -229,6 +204,11 @@ namespace nnc {
 
       inline bool has_jump() const { return has_jump(nullptr); }
       bool has_jump(std::shared_ptr<RtlVariable> cond) const;
+
+      bool has_jump_to(const RtlBlockName &to) const;
+      RtlJump &get_jump_to(const RtlBlockName &to);
+      const RtlJump &get_jump_to(const RtlBlockName &to) const;
+
     private:
       RtlFunction &m_function;
       RtlBlockName m_name;
@@ -239,48 +219,86 @@ namespace nnc {
       std::map< std::shared_ptr<RtlVariable>, RtlJump > m_jumps;
 
       friend class RtlFunction;
-      friend class RtlJumpIterator;
+
+    public:
+      typedef RtlJumpIterator<decltype(m_jumps), decltype(m_jumps)::reverse_iterator> jumps_iterator;
+      typedef RtlJumpIterator<const decltype(m_jumps), decltype(m_jumps)::const_reverse_iterator> const_jumps_iterator;
+      jumps_iterator jumps();
+      const_jumps_iterator jumps() const;
     };
 
-    class RtlBlockIterator {
+    class RtlFunction;
+
+    template<typename Q>
+    class Top {
     public:
-      typedef std::pair< RtlBlockName, std::shared_ptr<RtlBasicBlock> > value_type;
-      typedef RtlBlockIterator iterator_type;
+      static typename Q::value_type &get(Q &q) {
+        return q.top();
+      }
+    };
 
-      RtlBlockIterator(RtlFunction &fn,
-                       int i);
-      RtlBlockIterator(const RtlBlockIterator &o);
+    template<typename T>
+    class Top<std::queue<T>> {
+    public:
+      static T &get(std::queue<T> &q) {
+        return q.front();
+      }
+    };
 
-      bool operator==(const RtlBlockIterator &i) const;
-      inline bool operator!=(RtlBlockIterator &i) const {
-        return !(*this == i);
+    template<typename Q>
+    class RtlBasicBlockTraversal {
+    public:
+      typedef RtlBasicBlock value_type;
+
+      RtlBasicBlockTraversal<Q> &begin() {
+        return *this;
       }
 
-      bool operator<(const RtlBlockIterator &i) const;
-      bool operator>(const RtlBlockIterator &i) const;
-
-      inline bool operator<=(const RtlBlockIterator &i) const {
-        return (*this == i) || (*this < i);
+      RtlBasicBlockTraversal<Q> end() {
+        return RtlBasicBlockTraversal<Q>(m_function);
       }
 
-      inline bool operator>=(const RtlBlockIterator &i) const {
-        return (*this == i) || (*this > i);
+      RtlBasicBlockTraversal<Q> &operator++() {
+        next();
+        return *this;
       }
 
-      RtlBlockIterator operator+(int i) const;
-      RtlBlockIterator &operator++();
-      RtlBlockIterator operator++(int i);
+      bool operator==(const RtlBasicBlockTraversal &o) const {
+        return &o.m_function == &m_function && o.current == current;
+      }
 
-      RtlBlockIterator begin() const;
-      RtlBlockIterator end() const;
+      bool operator!=(const RtlBasicBlockTraversal &o) const {
+        return !(*this == o);
+      }
 
-      value_type operator*() const;
+      value_type &operator*() {
+        return *current;
+      }
 
     private:
-      void swap(RtlBlockIterator &i);
+      friend class RtlFunction;
+
+      RtlBasicBlockTraversal(RtlFunction &func, typename Q::value_type &entry)
+        : m_function(func), current(&*entry) {
+      }
+
+      RtlBasicBlockTraversal(RtlFunction &func)
+        : m_function(func), current(nullptr) { }
+
+      void add(const typename Q::value_type &o) {
+        RtlBasicBlock *blk(&(*o));
+        if ( visited.find(blk) == visited.end() ) {
+          upcoming.push(o);
+          visited.insert(blk);
+        }
+      }
+
+      void next();
 
       RtlFunction &m_function;
-      int m_index;
+      RtlBasicBlock *current;
+      Q upcoming;
+      std::unordered_set<RtlBasicBlock *> visited;
     };
 
     class RtlFunction {
@@ -290,8 +308,11 @@ namespace nnc {
 
       inline const std::string &functionName() const { return m_functionName; }
 
-      std::shared_ptr<RtlBasicBlock> block();
-      std::shared_ptr<RtlBasicBlock> block(const RtlBlockName &blockName) const;
+      RtlBasicBlock &block(bool entry = false);
+      RtlBasicBlock &block(const RtlBlockName &blockName);
+      const RtlBasicBlock &block(const RtlBlockName &blockName) const;
+      inline RtlBasicBlock &entry() { return *m_entry; }
+      inline const RtlBasicBlock &entry() const { return *m_entry; }
 
       std::shared_ptr<RtlVariable> variable(const std::string &namePrefix,
                                             std::shared_ptr<RtlType> type);
@@ -300,36 +321,46 @@ namespace nnc {
 
       void dump(std::ostream &out);
 
-      RtlBlockIterator blocks();
+      inline const std::list<RtlBasicBlock> &blocks() const { return m_blocks; };
+      inline std::list<RtlBasicBlock> &blocks() { return m_blocks; }
 
     private:
       std::string m_functionName;
-      std::vector< std::shared_ptr<RtlBasicBlock> > m_blocks;
+      std::list< RtlBasicBlock > m_blocks;
+      decltype(m_blocks)::iterator m_entry;
 
       std::unordered_map<std::string, std::shared_ptr<RtlVariable> > m_variables;
 
       std::unique_ptr<RtlTypeFactory> m_types;
 
       friend class RtlBlockIterator;
-    };
 
-    class OperandPrinter : public virtual RtlOperandVisitor {
     public:
-      OperandPrinter(RtlFunction &fn, std::ostream &out);
-      virtual ~OperandPrinter();
+      inline RtlBasicBlockTraversal<std::queue<decltype(m_blocks)::iterator>> bfs() {
+        return RtlBasicBlockTraversal<std::queue<decltype(m_blocks)::iterator>>(*this, m_entry);
+      }
 
-      virtual void operand(const std::string &name, std::shared_ptr<RtlVariable> var, bool input, bool output) override;
-      virtual void operand(const std::string &name, std::shared_ptr<RtlType> ty, const void *l, std::size_t lsz) override;
-      virtual void operand(const std::string &name, const RtlBlockName &dest) override;
+      inline RtlBasicBlockTraversal<std::stack<decltype(m_blocks)::iterator>> dfs() {
+        return RtlBasicBlockTraversal<std::stack<decltype(m_blocks)::iterator>>(*this, m_entry);
+      }
 
-    protected:
-      void next();
-
-      std::ostream &m_out;
-      bool m_first;
+      decltype(m_blocks)::iterator findBlock(const RtlBlockName &nm);
     };
 
-    void dumpOp(RtlOp &o, RtlFunction &f, std::ostream &out);
+    template<typename Q>
+    void RtlBasicBlockTraversal<Q>::next() {
+      value_type &block(**this);
+      for ( const auto &jump: block.jumps() ) {
+        auto it(m_function.findBlock(jump.second.to()));
+        add(it);
+      }
+
+      if ( !upcoming.empty() ) {
+        current = &(*Top<Q>::get(upcoming));
+        upcoming.pop();
+      } else
+        current = nullptr;
+    }
   }
 }
 

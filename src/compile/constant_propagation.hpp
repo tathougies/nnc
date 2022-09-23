@@ -15,7 +15,7 @@ namespace nnc::compile {
     PropagatedConstant(RtlFunction &fn, RtlConstantOp &op);
     PropagatedConstant(RtlFunction &fn, const std::shared_ptr<RtlVariable> &var,
                        const std::shared_ptr<RtlType> &ty,
-                       const std::span<std::uint8_t> &value);
+                       const std::span<const std::uint8_t> &value);
     virtual ~PropagatedConstant();
 
     inline std::shared_ptr<RtlVariable> var() const { return m_var; }
@@ -39,7 +39,7 @@ namespace nnc::compile {
   public:
     virtual const PropagatedConstant &getConstant(const std::shared_ptr<RtlVariable> &var) const=0;
     virtual void setConstant(const std::shared_ptr<RtlVariable> &var, const std::shared_ptr<RtlType> &ty,
-                             const std::span<std::uint8_t> &value) =0;
+                             const std::span<const std::uint8_t> &value) =0;
 
     bool isConstant(const std::shared_ptr<RtlVariable> &var) const;
   };
@@ -54,12 +54,12 @@ namespace nnc::compile {
     ConstantPropagation(RtlFunction &fn);
     virtual ~ConstantPropagation();
 
-    void propagateBlock(std::shared_ptr<RtlBasicBlock> block);
+    void propagateBlock(RtlBasicBlock &block);
     void operator() ();
 
     virtual const PropagatedConstant &getConstant(const std::shared_ptr<RtlVariable> &var) const;
     virtual void setConstant(const std::shared_ptr<RtlVariable> &var, const std::shared_ptr<RtlType> &ty,
-                             const std::span<std::uint8_t> &value);
+                             const std::span<const std::uint8_t> &value) override;
 
     inline RtlFunction &function() const { return m_function; }
 

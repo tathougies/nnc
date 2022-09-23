@@ -4,25 +4,26 @@
 
 namespace nnc {
   namespace executor {
-    BasicTensorInput::~BasicTensorInput() {
+  BasicTensorInput::BasicTensorInput(const std::string &baseName)
+      : m_baseName(baseName) {}
+
+  BasicTensorInput::~BasicTensorInput() {}
+
+  BasicTensorOps::~BasicTensorOps() {}
+
+  BasicTensorOp::~BasicTensorOp() {}
+
+  std::shared_ptr<BasicTensorOps>
+  BasicTensorOps::elementWise(const TensorShape &shp) {
+    std::shared_ptr<BasicTensorOps> loop(outerLoop());
+    int dims(shp.dims());
+
+    std::cerr << "element wise " << dims << std::endl;
+    for (int i = 0; i < dims; ++i) {
+      loop = loop->loop(shp.sizeInDimension(i));
     }
 
-    BasicTensorOps::~BasicTensorOps() {
-    }
-
-    BasicTensorOp::~BasicTensorOp() {
-    }
-
-    std::shared_ptr<BasicTensorOps> BasicTensorOps::elementWise(const TensorShape &shp) {
-      std::shared_ptr<BasicTensorOps> loop(outerLoop());
-      int dims(shp.dims());
-
-      std::cerr << "element wise " << dims << std::endl;
-      for ( int i = 0; i < dims; ++i ) {
-        loop = loop->loop(shp.sizeInDimension(i));
-      }
-
-      return loop;
+    return loop;
     }
 
     void BasicTensorOps::fullIndex(std::vector< std::shared_ptr<BasicTensorInput> > &ix) const {
@@ -42,7 +43,7 @@ namespace nnc {
       return index(base, ix);
     }
 
-    BasicTensorInputPtr BasicTensorOps::scalar(const DataType &dt) const {
+    BasicTensorInputPtr BasicTensorOps::scalar(const std::string &basename, const DataType &dt) const {
       ScalarShape sh;
       auto t(tensor(dt, sh));
       return fullyIndexed(t);

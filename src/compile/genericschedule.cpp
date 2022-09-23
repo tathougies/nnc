@@ -1,4 +1,4 @@
-#include "compile/genericschedule.hpp"
+"#include "compile/genericschedule.hpp"
 #include "compile/encoding.hpp"
 #include "compile/arbitrary.hpp"
 // #include "compile/reorder.hpp"
@@ -1077,7 +1077,7 @@ namespace nnc {
             cond = chooseRegister(mapper, e.jump_cond_class(), jump.first);
           }
 
-          auto targetPos(positions.find(jump.second.to()));
+          auto targetPos(positions.find(jump.second.to()))g + r10
           // Mapper contains the positions of the last variables
           GenericScheduler &destination(blockScheduler(jump.second.to()));
           JumpRewrite rewrites(e, jump.second, pos, mapper, destination);

@@ -7,18 +7,42 @@
 
 namespace nnc {
   namespace executor {
-    typedef std::shared_ptr<CpuTensorInput> CpuTensorPtr;
+    //    typedef std::shared_ptr<CpuTensorInput> CpuTensorPtr;
     typedef std::shared_ptr<CpuInput> CpuInputPtr;
+    typedef CpuInputPtr CpuTensorPtr;
 
     class CpuRtlInputTranslator {
     public:
-      virtual std::shared_ptr<compile::RtlVariable> tensor(CpuInputPtr tensor) =0;
-      virtual void tensor(CpuInputPtr tensor, std::shared_ptr<compile::RtlVariable> v) =0;
+      /** Get a variable representing this input for the given purposes.
+       *
+       * If nullptr is returned when for_writing is true, then use
+       * store_tensor and a temporary variable to store the data.
+       */
+      virtual std::shared_ptr<compile::RtlVariable> tensor(const std::string &name, CpuInputPtr tensor,
+                                                           bool for_reading = true,
+                                                           bool for_writing = false) = 0;
+      virtual void store_tensor(CpuInputPtr tensor, std::shared_ptr<compile::RtlVariable> v) =0;
 
-      virtual std::shared_ptr<compile::RtlBasicBlock> block() =0;
+      template <class Fn>
+      void write_tensor(const std::string &name, compile::RtlFunction &function,
+                        CpuInputPtr tensor,
+                        const Fn &write) {
+        auto destPtr(this->tensor(name, tensor, false, true));
+        if (destPtr) {
+          write(destPtr);
+        } else {
+          destPtr = function.variable(name, tensor->dataType().rtlType(function.types()));
+          write(destPtr);
+          store_tensor(tensor, destPtr);
+        }
+      }
 
-      virtual std::shared_ptr<compile::RtlVariable> input(int inputIx, std::shared_ptr<compile::RtlType> expType) =0;
+      virtual compile::RtlBasicBlock &block() =0;
+
+      virtual std::shared_ptr<compile::RtlVariable> input(const std::string &baseName, int inputIx, std::shared_ptr<compile::RtlType> expType) =0;
       virtual std::shared_ptr<compile::RtlVariable> loopIndex(int dim) =0;
+      virtual std::shared_ptr<compile::RtlVariable> scalar(const std::string &baseName, int scalarIx,
+                                                           std::shared_ptr<nnc::compile::RtlType> ty) =0;
     };
 
     class CpuRtlOp {
@@ -27,24 +51,26 @@ namespace nnc {
                               CpuRtlInputTranslator &h) const =0;
     };
 
-    class CpuCastOp : public CpuOp {
+    class CpuCastOp : public CpuOp, public CpuRtlOp  {
     public:
       CpuCastOp(const DataType &from, const DataType &to,
-                CpuTensorPtr src,
-                CpuTensorPtr dest);
+                CpuInputPtr src,
+                CpuInputPtr dest);
       virtual ~CpuCastOp();
 
       virtual void print(std::ostream &out) const;
 
+      virtual void makeRtlOp(compile::RtlFunction &fn,
+                             CpuRtlInputTranslator &h) const;
     private:
       const DataType &m_from, &m_to;
-      CpuTensorPtr m_source, m_dest;
+      CpuInputPtr m_source, m_dest;
     };
 
     class CpuConstantOp : public CpuOp, public CpuRtlOp {
     public:
       CpuConstantOp(const DataType &dt, const void *d, std::size_t sz,
-                    std::shared_ptr<CpuTensorInput> dest);
+                    CpuInputPtr dest);
       virtual ~CpuConstantOp();
 
       virtual void print(std::ostream &out) const;
@@ -55,7 +81,7 @@ namespace nnc {
     private:
       const DataType &m_type;
       std::vector<std::uint8_t> m_data;
-      CpuTensorPtr m_dest;
+      CpuInputPtr m_dest;
     };
 
     class CpuLoopOp : public CpuOp, public CpuLoop {

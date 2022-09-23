@@ -3,6 +3,7 @@
 #include <cerrno>
 #include <cstring>
 #include <sstream>
+#include <fstream>
 #include <iostream>
 
 extern "C" {
@@ -64,7 +65,7 @@ namespace nnc::invoke {
     void *newRegion;
     if ( !m_execRegion )
       newRegion = mmap(nullptr, sz, PROT_READ | PROT_WRITE | PROT_EXEC,
-                       MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+                       MAP_ANONYMOUS | MAP_PRIVATE | MAP_32BIT, -1, 0);
     else
       newRegion = mremap(m_execRegion, m_execRegionCapacity, pageCapacity,
                          MREMAP_MAYMOVE);
@@ -79,33 +80,29 @@ namespace nnc::invoke {
     m_execRegionCapacity = pageCapacity;
   }
 
-  void FunctionLibrary::link(nnc::compile::GenericFunctionScheduler &fn,
+  void FunctionLibrary::link(const nnc::compile::Linker &linker,
+                             const nnc::compile::RtlBasicBlock &entry,
                              const std::string &namePrefix) {
+    std::uint64_t pos(linker.blockPosition(entry));
+    if ( pos == (-1) )
+      throw std::runtime_error("Block not present in linker");
+
+    alloc(linker.size());
     std::stringstream d;
-    std::map<nnc::compile::RtlBlockName, std::ptrdiff_t> blockPosns;
 
-    fn.encode(d, blockPosns);
+    std::uintptr_t base((std::uintptr_t) m_execRegion);
+    base += m_execRegionSize;
 
-    // Copy the function data over
-    std::string data(d.str());
-    alloc(data.size());
+    linker.dump(d, base);
+
+    std::cerr << "Base is 0x" << std::hex << base << std::dec << std::endl;
 
     std::uint8_t *fnBase((std::uint8_t *) fnPtr(m_execRegionSize));
-    std::copy(data.begin(), data.end(),
-              fnBase);
+    std::copy(d.view().begin(), d.view().end(), fnBase);
 
-    for ( const auto &entry: fn.entryPoints() ) {
-      auto position(blockPosns.find(entry.second));
-      if ( position == blockPosns.end() ) continue;
+    m_fns.emplace(namePrefix + entry.function().functionName(), Function(*this, m_execRegionSize + pos, entry));
 
-      auto block(fn.function().block(entry.second));
-      if ( !block ) continue;
-
-      std::string newName(namePrefix + entry.first);
-      m_fns.emplace(newName, Function(*this, m_execRegionSize + position->second, *block));
-    }
-
-    m_execRegionSize += data.size();
+    m_execRegionSize += linker.size();
   }
 
   const Function &FunctionLibrary::operator[] (const std::string &name) const {

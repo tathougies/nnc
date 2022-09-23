@@ -5,6 +5,7 @@
 #include "compile/rtl_ops_base.hpp"
 #include "compile/registers.hpp"
 
+#include <span>
 #include <memory>
 #include <string>
 
@@ -54,11 +55,10 @@ namespace nnc {
       std::int32_t m_frameOffset;
       std::size_t m_size;
     };
-
-
+    
     class RtlOpMarker {
     public:
-      virtual void matchOp(RtlOp *op) =0;
+      virtual void matchOp(RtlOp *op, bool consume = true) =0;
     };
 
     class RtlOpSelector : public RtlOpBuilder {
@@ -67,7 +67,7 @@ namespace nnc {
                          const std::shared_ptr<RtlVariable> &right) =0;
 
       // Signal to the selector that the value of this variable is arbitrary
-      virtual void arbitrary(const RtlVariablePtr &v, const RegClass &rc);
+      virtual void arbitrary(const RtlVariablePtr &v, const RegClass &rc) =0;
     };
 
     class RtlCostedOp {

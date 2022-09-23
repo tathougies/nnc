@@ -6,8 +6,11 @@
 #include <vector>
 #include <iostream>
 
-#include "compile/genericschedule.hpp"
+#include "compile/dump.hpp"
+#include "compile/regset.hpp"
+#include "compile/registers.hpp"
 #include "compile/rtl.hpp"
+#include "compile/controlflow.hpp"
 
 namespace nnc::compile {
   class RegClassDeclarer {
@@ -24,85 +27,71 @@ namespace nnc::compile {
     virtual void regclasses(RegClassDeclarer &decl) const =0;
   };
 
-  template<typename Allocator>
-  class RegisterAllocator {
+  class RegisterAllocatorBase {
   public:
-    RegisterAllocator(GenericFunctionScheduler &s)
-      : m_sched(s) {
+    RegisterAllocatorBase(RtlFunction &s, RegisterFile &regs);
+    virtual ~RegisterAllocatorBase();
+
+    inline RtlFunction &function() const { return m_function; }
+    inline RegisterFile &registerFile() const { return m_registers; }
+
+    virtual RegisterTracker &registersFor(const RtlBlockName &nm) =0;
+
+  private:
+    RtlFunction &m_function;
+    RegisterFile &m_registers;
+  };
+
+  class RtlRegisterBlockDumper : public RtlBasicBlockDumper {
+  public:
+    RtlRegisterBlockDumper(RegisterAllocatorBase &regs,
+                           std::ostream &out);
+    virtual ~RtlRegisterBlockDumper();
+
+    virtual void dumpOp(RtlFunction &fn, const RtlBasicBlock *block, RtlOp &op, int index);
+
+  protected:
+    virtual void dumpVar(const RtlBasicBlock *from, int opix, const RtlVariablePtr &var) override;
+
+  private:
+    RegisterAllocatorBase &m_registers;
+  };
+
+  template<typename Allocator>
+  class RegisterAllocator : public RegisterAllocatorBase {
+  public:
+    RegisterAllocator(RtlFunction &s, RegisterFile &regs)
+      : RegisterAllocatorBase(s, regs) {
     }
 
-    RtlFunction &function() const { return m_sched.function(); }
+    virtual RegisterTracker &registersFor(const RtlBlockName &nm) override {
+      return allocatorFor(nm).tracker();
+    }
+
+    Allocator &allocatorFor(const RtlBasicBlock &block) {
+      return allocatorFor(block.name());
+    }
+
+    Allocator &allocatorFor(const RtlBlockName &nm) {
+      auto it(m_allocs.find(nm));
+      if ( it == m_allocs.end() ) {
+        std::tie(it, std::ignore) =
+          m_allocs.emplace(std::piecewise_construct, std::forward_as_tuple(nm),
+                           std::forward_as_tuple(function().block(nm), registerFile()));
+      }
+      return it->second;
+    }
 
     void operator() () {
-      std::deque<nnc::compile::RtlBlockName> ordered(nnc::compile::orderBlocksNoLoops(m_sched));
-      std::cerr << "Ordered blocks: ";
-      std::transform(ordered.begin(), ordered.end(), std::ostream_iterator<int>(std::cerr, " "), [](const auto &b) { return b.index(); });
+      ControlFlowAnalysis cfa(function());
 
       // For each block, build up lifetimes
-      for ( auto &blockNm: ordered ) {
-        auto &block(m_sched.blockScheduler(blockNm));
-        auto [it, inserted] =
-          m_allocs.emplace(std::piecewise_construct, std::forward_as_tuple(block.destBlock()->name()),
-                           std::forward_as_tuple(block));
+      for ( auto &block: function().bfs() ) {
+        std::cerr << "Allocating block" << block.name().index() << std::endl;
+        Allocator &allocator(allocatorFor(block));
 
-        // For all blocks that call into us, collect the argument
-        // locations. If they're the same, then automatically use that
-        // register. Otherwise, apply a heuristic to choose the best
-        // one (always picking a register, for now)
-        std::vector<std::multimap<RtlBlockName, VirtualRegister>> argLocs;
-        argLocs.resize(block.destBlock()->arity());;
+        resolveBlockArgLocations(block, cfa, allocator.tracker());
 
-        std::cerr << "Find calls for " << blockNm.index() << std::endl;
-        m_sched.predecessors(&block, [blockNm, &argLocs, &block](const RtlBlockName &nm, GenericScheduler *c) {
-          auto preBlock(c->destBlock());
-          std::cerr << "Try block " << preBlock->name().index() << std::endl;
-          // Find the jump with this name
-          auto call(std::find_if(preBlock->jumps().begin(),
-                                 preBlock->jumps().end(),
-                                 [blockNm](const auto &j) { return j.second.to() == blockNm; }));
-          if ( call == preBlock->jumps().end() )
-            return;
-
-          for ( auto [ arg, locs ] = std::tuple { call->second.arguments().begin(),
-                                               argLocs.begin() };
-                arg != call->second.arguments().end();
-                arg++, locs++ ) {
-            std::cerr << "Check call from " << c->destBlock()->name().index() << " to " << block.destBlock()->name().index() << ": ";
-            auto regs(c->registers().assignment(c->destBlock()->endTime(), *arg));
-            for ( const auto &reg: regs)
-              locs->emplace(std::make_pair(c->destBlock()->name(), reg));
-
-            std::copy(regs.begin(), regs.end(), std::ostream_iterator<VirtualRegister>(std::cerr, " "));
-            std::cerr << std::endl;
-          }
-        });
-
-        std::cerr << "For block " << blockNm.index() << ": ";
-        for ( auto [it, i] = std::tuple {argLocs.begin(), 0};
-              it != argLocs.end();
-              ++it, ++i ) {
-          std::cerr << "  Arg " << i << " (" << block.destBlock()->inputs()[i]->name() << "): ";
-          for ( const auto &p: *it ) {
-            std::cerr << p.second << "(from block" << p.first.index() << "), ";
-          }
-          std::cerr << std::endl;
-        }
-
-        for ( auto [ argLoc, input ] = std::tuple {argLocs.begin(), block.destBlock()->inputs().begin()};
-              argLoc != argLocs.end();
-              ++argLoc, ++input ) {
-          if ( argLoc->size() == 0 ) {
-            std::cerr << "No register allocated for input " << (*input)->name() << std::endl;
-          } else if ( argLoc->size() == 1 ) {
-            auto allocated(argLoc->begin());
-            VirtualRegister vreg(allocated->second);
-            block.registers().assign(-1, *input, vreg);
-          } else {
-            std::cerr << "Need to resolve argument contention " << (*input)->name() << std::endl;
-          }
-        }
-
-        Allocator &allocator(it->second);
         allocator();
       }
 
@@ -111,8 +100,65 @@ namespace nnc::compile {
       // registers
     }
 
+  protected:
+    void resolveBlockArgLocations(RtlBasicBlock &block, const ControlFlowAnalysis &cfa,
+                                  RegisterTracker &tracker) {
+        // For all blocks that call into us, collect the argument
+        // locations. If they're the same, then automatically use that
+        // register. Otherwise, apply a heuristic to choose the best
+        // one (always picking a register, for now)
+      //        std::vector<std::multimap<RtlBlockName, VirtualRegister>> argLocs;
+        std::vector<std::map<VirtualRegister, int>> argLocs;
+        argLocs.resize(block.arity());
+
+        std::vector<RtlBlockName> preds;
+        cfa.findPredecessors(block.name(), preds);
+
+        std::cerr << "Find calls for " << block.name().index() << std::endl;
+        for ( const RtlBlockName &nm: preds ) {
+          RtlBasicBlock &preBlock(function().block(nm));
+
+          std::cerr << "Try block " << preBlock.name().index() << std::endl;
+          // Find the jump with this name
+          auto &call(preBlock.get_jump_to(block.name()));
+
+          for ( auto [ arg, locs ] = std::tuple { call.arguments().begin(),
+                                               argLocs.begin() };
+                arg != call.arguments().end();
+                arg++, locs++ ) {
+            std::cerr << "Check call from " << preBlock.name().index() << " to " << block.name().index() << "(" <<
+              (*arg)->name() << "): ";
+            auto regs(allocatorFor(preBlock).tracker().assignment(preBlock.endTime(), *arg));
+            for (const auto &reg : regs) {
+              auto locCounter(locs->find(reg));
+              if ( locCounter == locs->end() )
+                locCounter = locs->emplace(reg, 0).first;
+
+              locCounter->second++;
+            }
+
+            std::copy(regs.begin(), regs.end(), std::ostream_iterator<VirtualRegister>(std::cerr, " "));
+            std::cerr << std::endl;
+          }
+        }
+
+        for ( auto [ argLoc, input ] = std::tuple {argLocs.begin(), block.inputs().begin()};
+              argLoc != argLocs.end();
+              ++argLoc, ++input ) {
+          auto it(std::max_element(argLoc->begin(), argLoc->end(),
+                                   [](const auto &a, const auto &b) {
+                                     return a.second < b.second; }));
+          if ( it == argLoc->end() )
+            std::cerr << "No register allocated for input " << (*input)->name() << std::endl;
+          else {
+            std::cerr << "Assigning " << it->first << " to input " << (*input)->name() << std::endl;
+            tracker.assign(-1, *input, it->first);
+          }
+        }
+
+    }
+
   private:
-    GenericFunctionScheduler &m_sched;
     std::map<RtlBlockName, Allocator> m_allocs;
   };
 }

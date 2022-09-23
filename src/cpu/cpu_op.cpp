@@ -29,8 +29,8 @@ namespace nnc {
     }
 
     CpuCastOp::CpuCastOp(const DataType &from, const DataType &to,
-                         std::shared_ptr<CpuTensorInput> src,
-                         std::shared_ptr<CpuTensorInput> dest)
+                         CpuInputPtr src,
+                         CpuInputPtr dest)
       : m_from(from), m_to(to), m_source(src), m_dest(dest) {
     }
 
@@ -43,8 +43,23 @@ namespace nnc {
       m_source->print(out) << ");" << std::endl;
     }
 
+    void CpuCastOp::makeRtlOp(compile::RtlFunction &fn,
+                              CpuRtlInputTranslator &h) const {
+      if (m_from == m_to) {
+        h.write_tensor("cast", fn, m_dest,
+                       [this, &h](const compile::RtlVariablePtr &var) {
+                         h.block().emplace_op<compile::RtlMovOp>(h.tensor("src", m_source), var);
+                       });
+      } else {
+        h.write_tensor("cast", fn, m_dest,
+                       [this, &h](const compile::RtlVariablePtr &var) {
+                         h.block().cast(h.tensor("src", m_source), var);
+                       });
+      }
+    }
+
     CpuConstantOp::CpuConstantOp(const DataType &dt, const void *d, std::size_t sz,
-                                 std::shared_ptr<CpuTensorInput> dest)
+                                 CpuInputPtr dest)
       : m_type(dt), m_data(sz), m_dest(dest) {
       std::copy_n((std::uint8_t *)d, sz, m_data.begin());
     }
@@ -54,11 +69,11 @@ namespace nnc {
 
     void CpuConstantOp::makeRtlOp(compile::RtlFunction &fn,
                                   CpuRtlInputTranslator &h) const {
-      auto destvar(fn.variable("dest", m_type.rtlType(fn.types())));
-      h.block()->emplace_op<compile::RtlConstantOp>(m_type.rtlType(fn.types()),
-                                                    m_data.data(), m_data.size(),
-                                                    destvar);
-      h.tensor(m_dest, destvar);
+      h.write_tensor("const", fn, m_dest, [this, &h, &fn](const compile::RtlVariablePtr &dest) {
+        h.block().emplace_op<compile::RtlConstantOp>(m_type.rtlType(fn.types()),
+                                                     m_data.data(), m_data.size(),
+                                                     dest);
+      });
     }
 
     void CpuConstantOp::print(std::ostream &out) const {
@@ -138,13 +153,14 @@ namespace nnc {
 
     void CpuBinRtlOp::makeRtlOp(compile::RtlFunction &fn,
                                 CpuRtlInputTranslator &h) const {
-      auto avar(h.tensor(a()));
-      auto bvar(h.tensor(b()));
+      h.write_tensor(
+           "result", fn, dest(),
+           [this, &fn, &h](const compile::RtlVariablePtr &destvar) {
+             auto avar(h.tensor("a", a()));
+             auto bvar(h.tensor("b", b()));
 
-      auto destvar(fn.variable("dest", resultType().rtlType(fn.types())));
-
-      h.block()->emplace_op<compile::RtlArithOp>(m_bop, avar, bvar, destvar);
-      h.tensor(dest(), destvar);
+             h.block().emplace_op<compile::RtlArithOp>(m_bop, avar, bvar, destvar);
+           });
     }
 
     CpuAddOp::CpuAddOp(const CpuTensorPtr &dest,

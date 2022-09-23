@@ -70,9 +70,18 @@ namespace nnc {
       int m_index;
     };
 
+    struct CpuScalarIndex {
+    public:
+      inline CpuScalarIndex(int ix) : m_index(ix) {}
+      inline int index() const { return m_index; }
+
+    private:
+      int m_index;
+    };
+
     struct CpuTensorIndex {
     public:
-      inline CpuTensorIndex(int ix) : m_index(ix) { }
+      inline CpuTensorIndex(int ix) : m_index(ix) {}
 
       inline int index() const { return m_index; }
 
@@ -83,6 +92,7 @@ namespace nnc {
     class CpuInput {
     public:
       virtual std::ostream &print(std::ostream &out) const =0;
+      virtual const DataType &dataType() const =0;
     };
 
     class CpuTensorInput : public CpuInput {
@@ -122,10 +132,22 @@ namespace nnc {
       std::vector<AxisStride> m_stride;
     };
 
-//    class MemFixup {
-//    public:
-//
-//    };
+    class Scalar {
+    public:
+      Scalar(const std::string &baseName, const DataType &ty);
+
+      inline const std::string &baseName() const { return m_baseName; }
+      inline const DataType &dataType() const { return m_dataType; }
+
+    private:
+      std::string m_baseName;
+      const DataType &m_dataType;
+    };
+
+    //    class MemFixup {
+    //    public:
+    //
+    //    };
     class CpuOp;
 
     class CpuOpVisitor {
@@ -175,8 +197,11 @@ namespace nnc {
       CpuTensorIndex newMemoryTensor(const DataType &dt, const TensorShape &shape);
       CpuTensorIndex newMemoryTensor(const CpuMemIndex &memIx);
 
+      CpuScalarIndex newScalar(const std::string &baseName, const DataType &dt);
+
       MemRequirement &operator[](const CpuMemIndex &ix);
       MemTensor &operator[](const CpuTensorIndex &ix);
+      Scalar &operator[](const CpuScalarIndex &ix);
 
       virtual const CpuOpList &ops() const;
       virtual void addOp(const std::shared_ptr<CpuOp> &op);
@@ -187,6 +212,7 @@ namespace nnc {
       std::vector<MemRequirement> m_mem_requirements;
 
       std::vector<MemTensor> m_mem_tensors;
+      std::vector<Scalar> m_scalars;
 
       std::map<Tensor *, CpuTensorIndex> m_tensor_map;
       //      std::vector<MemFixup> m_fixups;

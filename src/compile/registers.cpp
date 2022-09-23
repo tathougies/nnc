@@ -66,6 +66,12 @@ namespace nnc::compile {
       m_reg = r.m_reg;
   }
 
+  bool RtlRegisterMapper::spilled(const RtlVariablePtr &v) const {
+    auto locs(lookupVar(v));
+    return std::all_of(locs.begin(), locs.end(), [](const VirtualRegister &reg) {
+      return reg.isSpill(); });
+  }
+
   std::ostream &operator<<(std::ostream &out, const ::nnc::compile::Register &v) {
     out << v.registers().registerName(v.number());
     return out;
@@ -90,6 +96,9 @@ namespace nnc::compile {
                          }));
 
     if ( it == vregs.end() ) {
+      std::cerr << "Could not find any variable in class " << cls.name() << " (for var " << b->name() << ") : ";
+      std::copy(vregs.begin(), vregs.end(), std::ostream_iterator<VirtualRegister>(std::cerr, " " ));
+      std::cerr << std::endl;
       throw exception::VariableNotInClass(b, cls);
     }
 

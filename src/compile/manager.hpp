@@ -21,7 +21,6 @@ namespace nnc::compile {
     std::string m_prefix;
 
     std::map<std::string, RtlFunction> m_functions;
-    std::map<std::string, RtlBlockName> m_entries;
   };
 
   class DefaultManager : public Manager {
@@ -32,7 +31,7 @@ namespace nnc::compile {
     virtual void compile(nnc::invoke::FunctionLibrary &lib, RtlFunction &fn);
 
   protected:
-    virtual void schedule(RtlFunction &fn, const RtlBlockName &entry,
+    virtual void schedule(RtlFunction &fn,
                           nnc::invoke::FunctionLibrary &lib) =0;
 
   private:

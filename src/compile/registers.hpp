@@ -178,6 +178,9 @@ namespace nnc::compile {
   class RtlRegisterMapper {
   public:
     virtual std::vector<VirtualRegister> lookupVar(const RtlVariablePtr &v) const =0;
+
+    /** Returns true if all assigned registers are spilled ones */
+    bool spilled(const RtlVariablePtr &v) const;
   };
 
   class RegisterTracker;
@@ -198,7 +201,7 @@ namespace nnc::compile {
 
   class RegisterTracker {
   public:
-    RegisterTracker(const std::shared_ptr<RtlBasicBlock> &b);
+    RegisterTracker();
 
     void assign(int time, const RtlVariablePtr &var, const VirtualRegister &reg);
     void assign(int time, const CallingConvention &conv);

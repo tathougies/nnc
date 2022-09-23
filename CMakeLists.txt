@@ -1,6 +1,8 @@
 project(nnc)
 cmake_minimum_required(VERSION 3.16)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 find_package(Catch2 REQUIRED)
 find_package(FLEX)
 find_package(BISON)
@@ -79,7 +81,10 @@ add_library(nnc SHARED src/tensor.cpp src/graph.cpp src/exception.cpp
   src/compile/x86_64/encoding.cpp src/compile/x86_64/manager.cpp
 
   src/compile/controlflow.cpp src/compile/dataflow.cpp src/compile/linear_alloc.cpp
-  src/compile/ssa.cpp src/compile/genericschedule.cpp src/compile/insnsel.cpp ${NNC_ARCH_SOURCE})
+  src/compile/ssa.cpp #  src/compile/genericschedule.cpp
+  src/compile/insnsel.cpp src/compile/insnsched.cpp src/compile/dump.cpp
+  src/compile/link.cpp
+  ${NNC_ARCH_SOURCE})
 set_property(TARGET nnc PROPERTY CXX_STANDARD 20)
 target_include_directories(nnc PRIVATE ${NNC_ARCH_INCLUDE})
 
@@ -91,6 +96,12 @@ add_executable(main main.cpp)
 target_link_libraries(main nnc)
 set_property(TARGET main PROPERTY CXX_STANDARD 20)
 target_include_directories(main PRIVATE ${NNC_ARCH_INCLUDE})
+
+add_executable(mnist mnist.cpp)
+target_link_libraries(mnist nnc)
+set_property(TARGET mnist PROPERTY CXX_STANDARD 20)
+target_include_directories(mnist PRIVATE ${NNC_ARCH_INCLUDE})
+  
 
 include(CTest)
 #include(Catch)

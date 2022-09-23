@@ -212,6 +212,7 @@ namespace nnc {
     IMPL_CASTLIKE_OP(RtlSiToFpOp, "sitofp");
     IMPL_CASTLIKE_OP(RtlPtrToIntOp, "ptrtoint");
     IMPL_CASTLIKE_OP(RtlIntToPtrOp, "inttoptr");
+    IMPL_CASTLIKE_OP(RtlMovOp, "mov");
 
 #define NO_CONSTANT_PROPAGATION(OpName)                                 \
     void OpName::propagate(IConstantPropagator &p) const {              \
@@ -226,6 +227,14 @@ namespace nnc {
     NO_CONSTANT_PROPAGATION(RtlSiToFpOp);
     NO_CONSTANT_PROPAGATION(RtlPtrToIntOp);
     NO_CONSTANT_PROPAGATION(RtlIntToPtrOp);
+
+    void RtlMovOp::propagate(IConstantPropagator &p) const {
+      if (p.isConstant(source())) {
+        const auto &constant(p.getConstant(source()));
+
+        p.setConstant(dest(), source()->type(), constant.data());
+      }
+    }
 
     class IntWidthVisitor : public RtlTypeVisitor {
     public:

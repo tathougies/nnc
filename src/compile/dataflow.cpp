@@ -52,13 +52,13 @@ namespace nnc {
       m_producers.clear();
 
       for ( const auto &block : m_function.blocks() ) {
-        for ( const auto &op: *block.second ) {
-          WriteCollector writes(*this, block.first);
+        for ( const auto &op: block ) {
+          WriteCollector writes(*this, block.name());
           op->operands(writes);
         }
 
-        for ( const auto &input: block.second->inputs() ) {
-          m_producers.insert(std::make_pair(input->repr(), block.first));
+        for ( const auto &input: block.inputs() ) {
+          m_producers.insert(std::make_pair(input->repr(), block.name()));
         }
       }
     }

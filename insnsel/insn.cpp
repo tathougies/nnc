@@ -305,6 +305,11 @@ void InsnVarType::outputIntersect(const std::string &declNm,
   out << declNm << ".intersect(" << aNm << ", " << bNm << ", regclass::" << regclassNm << ");" << std::endl;
 }
 
+bool InsnVarType::canBeImpure() const { return false; }
+void InsnVarType::outputIsPure(const std::string &memName, std::ostream &out) const {
+  out << "true";
+}
+
 std::ostream &InsnVarType::outputRegClasses(const std::string &visitorNm,
                                             const std::string &argNm,
                                             const std::string &memName,
@@ -497,6 +502,11 @@ void CType::param(const std::string &name, const Literal &l) {
   } else if ( name == "intersection" ) {
     SetTemplateStringLiteral set(m_intersect, WarnMissing("intersection", "string"));
     l.visit(set);
+  } else if ( name == "checkPure" ) {
+    template_string d;
+    SetTemplateStringLiteral set(d, WarnMissing("checkPure", "string"));
+    l.visit(set);
+    m_canBeImpure = d;
   } else if ( name == "acceptsRtlType" ) {
     std::uint32_t v(~0);
     SetNumberLiteral set(v, WarnMissing("acceptsRtlType", "number"));
@@ -521,6 +531,15 @@ bool CType::isDefaultable() const {
 void CType::setters(SettersVisitor &v) const {
   for ( const auto &t: m_setters )
     v.setter(t.first, t.second);
+}
+
+bool CType::canBeImpure() const {
+  return m_canBeImpure.has_value();
+}
+
+void CType::outputIsPure(const std::string &memName, std::ostream &out) const {
+  std::map<std::string, std::string> vars { { "member", memName } };
+  out << m_canBeImpure->render(vars);
 }
 
 void CType::outputIntersect(const std::string &declNm,

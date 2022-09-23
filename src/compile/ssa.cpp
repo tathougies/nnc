@@ -27,19 +27,20 @@ namespace nnc {
       SsaThreader(SsaRewriter &rewriter, const RtlBlockName &origName,
                   std::shared_ptr<RtlVariable> var)
         : m_rewriter(rewriter),
-          m_origBlock(origName), m_function(rewriter.block()->function()),
+          m_origBlock(origName), m_function(rewriter.block().function()),
           m_var(var) {
+        std::cerr << "Adding var name " << origName.index() << " " << var->name() << std::endl;
         addVarName(origName, var);
       }
 
-      void operator() (std::shared_ptr<RtlBasicBlock> finalBlock) {
+      void operator() (RtlBasicBlock &finalBlock) {
         varNameInBlock(finalBlock);
 
         while ( !done() ) {
           auto nextCall(m_upcoming.front());
           m_upcoming.pop_front();
 
-          std::shared_ptr<RtlBasicBlock> nextBlock(nextCall.first);
+          RtlBasicBlock &nextBlock(nextCall.first);
           RtlBlockName nextJump(nextCall.second);
 
           // For every call into the target block (nextBlock.second),
@@ -47,7 +48,7 @@ namespace nnc {
           // argument.
           auto var(varNameInBlock(nextBlock));
 
-          for ( auto &jump: nextBlock->jumps() ) {
+          for ( auto &jump: nextBlock.jumps() ) {
             if ( jump.second.to() == nextJump )
               jump.second.push_argument(var);
           }
@@ -75,29 +76,29 @@ namespace nnc {
         return m_upcoming.empty();
       }
 
-      bool visited(std::shared_ptr<RtlBasicBlock> block, const RtlBlockName &dest) const {
-        return m_visited.find(std::make_pair(block->name(), dest)) != m_visited.end();
+      bool visited(const RtlBasicBlock &block, const RtlBlockName &dest) const {
+        return m_visited.find(std::make_pair(block.name(), dest)) != m_visited.end();
       }
 
-      std::shared_ptr<RtlVariable> varNameInBlock(std::shared_ptr<RtlBasicBlock> blk) {
-        std::shared_ptr<RtlVariable> v(m_rewriter.aliases().varNameInBlock(blk->name(), m_var).initial);
+      std::shared_ptr<RtlVariable> varNameInBlock(RtlBasicBlock &blk) {
+        std::shared_ptr<RtlVariable> v(m_rewriter.aliases().varNameInBlock(blk.name(), m_var).initial);
 
         if ( v ) return v;
 
-        auto blkVar(blk->addInput(m_var->namePrefix(), m_var->type()));
-        addVarName(blk->name(), blkVar);
-        m_rewriter.dataFlow().addOriginatingBlock(blkVar, blk->name());
+        auto blkVar(blk.addInput(m_var->namePrefix(), m_var->type()));
+        addVarName(blk.name(), blkVar);
+        m_rewriter.dataFlow().addOriginatingBlock(blkVar, blk.name());
 
-        addDestination(*blk);
+        addDestination(blk);
 
         return blkVar;
       }
 
       void enqueueCall(const RtlBlockName &pre, const RtlBlockName &tgt) {
-        auto preBlock(function().block(pre));
+        auto &preBlock(function().block(pre));
         if ( visited(preBlock, tgt) ) return;
 
-        m_upcoming.push_back(std::make_pair(preBlock, tgt));
+        m_upcoming.emplace_back(preBlock, tgt);
       }
 
       SsaRewriter &m_rewriter;
@@ -107,7 +108,7 @@ namespace nnc {
 
       std::set< std::pair<RtlBlockName, RtlBlockName> > m_visited;
 
-      std::deque< std::pair< std::shared_ptr<RtlBasicBlock>, RtlBlockName > > m_upcoming;
+      std::deque< std::pair< RtlBasicBlock &, RtlBlockName > > m_upcoming;
     };
 
     class SsaOpRewriter : public RtlOperandVisitor {
@@ -124,23 +125,26 @@ namespace nnc {
 
       virtual void operand(const std::string &name, std::shared_ptr<RtlVariable> var, bool input, bool output) {
         auto origBlock(m_rewriter.m_dataFlow.findOriginatingBlock(var));
-        if ( ! origBlock )
+        if (!origBlock) {
+          std::cerr << "Variable " << var->name() << " not initialized" << std::endl;
           throw exception::RtlVariableNotInitialized(var);
+        }
 
-        if ( *origBlock == m_rewriter.block()->name() ) return;
+        if ( *origBlock == m_rewriter.block().name() ) return;
 
         // Check if it's already rewritten
-        auto newVar(m_rewriter.aliases().varNameInBlock(m_rewriter.block()->name(), var).initial);
+        auto newVar(m_rewriter.aliases().varNameInBlock(m_rewriter.block().name(), var).initial);
         if ( !newVar ) {
+          std::cerr << "Rewriting " << var->name() << " in block " << m_rewriter.block().name().index() << "(originated in block " << origBlock->index() << ")" << std::endl;
           // Now we have to thread the variable through all edges that reach this block
           SsaThreader threader(m_rewriter, *origBlock, var);
           threader(m_rewriter.block());
 
-          newVar = m_rewriter.aliases().varNameInBlock(m_rewriter.block()->name(), var).end;
+          newVar = m_rewriter.aliases().varNameInBlock(m_rewriter.block().name(), var).end;
         } else if ( output ) {
           // Copy the variable
           newVar = function().variable(var->namePrefix(), var->type());
-          m_rewriter.aliases().replaceBlockAlias(m_rewriter.block()->name(), var, newVar);
+          m_rewriter.aliases().replaceBlockAlias(m_rewriter.block().name(), var, newVar);
         }
 
         m_newArgs.insert(std::make_pair(name, newVar));
@@ -157,7 +161,7 @@ namespace nnc {
       std::map< std::string, std::shared_ptr<RtlVariable> > m_newArgs;
     };
 
-    SsaRewriter::SsaRewriter(std::shared_ptr<RtlBasicBlock> block, SsaMapper &mapper,
+    SsaRewriter::SsaRewriter(RtlBasicBlock &block, SsaMapper &mapper,
                              ControlFlowAnalysis &controlFlow,
                              DataflowAnalysis &dataFlow)
       : m_block(block), m_controlFlow(controlFlow), m_dataFlow(dataFlow), m_aliases(mapper) {
@@ -167,30 +171,30 @@ namespace nnc {
     }
 
     void SsaRewriter::operator() () {
-      for ( const auto &op : *m_block ) {
-        SsaOpRewriter rewriter(m_block->function(), *this, *op);
+      for ( const auto &op : m_block ) {
+        SsaOpRewriter rewriter(m_block.function(), *this, *op);
         op->operands(rewriter);
       }
 
       std::map< std::shared_ptr<RtlVariable>, RtlJump > newJumps;
-      for ( auto &jump : m_block->jumps() ) {
+      for ( auto &jump : m_block.jumps() ) {
         auto args(std::move(jump.second.arguments()));
 
         RtlJump newJump(jump.second.to());
 
         for ( const auto &arg : args ) {
-          auto newArg(m_aliases.nameAtBlockEnd(m_block->name(), arg));
+          auto newArg(m_aliases.nameAtBlockEnd(m_block.name(), arg));
           newJump.push_argument(newArg);
         }
 
         RtlVariablePtr cond;
         if ( jump.first )
-          cond = m_aliases.nameAtBlockEnd(m_block->name(), jump.first);
+          cond = m_aliases.nameAtBlockEnd(m_block.name(), jump.first);
 
         newJumps.emplace(cond, std::move(newJump));
       }
 
-      m_block->replace_jumps(newJumps);
+      m_block.replace_jumps(newJumps);
     }
 
     SsaMapper::SsaMapper() {
@@ -207,11 +211,13 @@ namespace nnc {
     void SsaMapper::addBlockAlias(const RtlBlockName &blk, std::shared_ptr<RtlVariable> subject,
                                   std::shared_ptr<RtlVariable> aka) {
       auto key(std::make_pair(blk, subject->repr()));
-      if ( m_aliases.find(key) != m_aliases.end() ) {
-        throw std::runtime_error("bad block alias");
+      auto existing(m_aliases.find(key));
+      if ( existing != m_aliases.end() ) {
+        if ( !existing->second.initial->isSame(aka) )
+          throw std::runtime_error("bad block alias");
+      } else {
+        m_aliases.insert(std::make_pair(key, SsaAlias(aka)));
       }
-
-      m_aliases.insert(std::make_pair(key, SsaAlias(aka)));
     }
 
     void SsaMapper::replaceBlockAlias(const RtlBlockName &blk, std::shared_ptr<RtlVariable> subject,

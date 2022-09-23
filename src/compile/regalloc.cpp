@@ -1,11 +1,43 @@
 #include "compile/regalloc.hpp"
 #include "compile/cconv.hpp"
+#include "compile/controlflow.hpp"
 
 #include <iostream>
 
 namespace nnc::compile {
-  RegisterTracker::RegisterTracker(const std::shared_ptr<RtlBasicBlock> &b)
-    : m_block(b) {
+  RegisterAllocatorBase::RegisterAllocatorBase(RtlFunction &s, RegisterFile &regs)
+    : m_function(s), m_registers(regs) {
+  }
+
+  RegisterAllocatorBase::~RegisterAllocatorBase() {
+  }
+
+  RtlRegisterBlockDumper::RtlRegisterBlockDumper(RegisterAllocatorBase &regs,
+                                                 std::ostream &out)
+    : RtlBasicBlockDumper(out),
+      m_registers(regs) {
+  }
+
+  RtlRegisterBlockDumper::~RtlRegisterBlockDumper() {
+  }
+
+  void RtlRegisterBlockDumper::dumpVar(const RtlBasicBlock *from, int opix, const RtlVariablePtr &var) {
+    RtlBasicBlockDumper::dumpVar(from, opix, var);
+    if ( from ) {
+      RegisterTracker &regs(m_registers.registersFor(from->name()));
+      std::vector<VirtualRegister> vregs(regs.assignment(opix, var));
+      out() << "[";
+      std::copy(vregs.begin(), vregs.end(), std::ostream_iterator<VirtualRegister>(out(), " "));
+      out() << "]";
+    }
+  }
+
+  void RtlRegisterBlockDumper::dumpOp(RtlFunction &fn, const RtlBasicBlock *from, RtlOp &op, int index) {
+    out() << "  " << index << ":";
+    RtlBasicBlockDumper::dumpOp(fn, from, op, index);
+  }
+
+  RegisterTracker::RegisterTracker() {
   }
 
   void RegisterTracker::assign(int time, const RtlVariablePtr &base, const VirtualRegister &reg) {
@@ -34,14 +66,14 @@ namespace nnc::compile {
   }
 
   RtlVariablePtr RegisterTracker::canonicalize(const RtlVariablePtr &p) const {
-    auto it( m_aliases.find(p) );
-    if ( it == m_aliases.end() ) return p;
+    auto it( m_aliases.find(p->repr()) );
+    if ( it == m_aliases.end() ) return p->repr();
     else return canonicalize(it->second);
   }
 
   RtlVariablePtr RegisterTracker::canonicalize(const RtlVariablePtr &p) {
-    auto it( m_aliases.find(p) );
-    if ( it == m_aliases.end() ) return p;
+    auto it( m_aliases.find(p->repr()) );
+    if ( it == m_aliases.end() ) return p->repr();
     else {
       auto n(canonicalize(it->second));
       it->second = n;
@@ -50,7 +82,7 @@ namespace nnc::compile {
   }
 
   void RegisterTracker::alias(const RtlVariablePtr &src, const RtlVariablePtr &dest) {
-    m_aliases.emplace(dest, src);
+    m_aliases.emplace(dest->repr(), src);
   }
 
   std::vector<VirtualRegister> RegisterTracker::assignment(int time, const RtlVariablePtr &base) const {

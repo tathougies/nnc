@@ -54,7 +54,7 @@ namespace nnc {
 
     class SsaRewriter {
     public:
-      SsaRewriter(std::shared_ptr<RtlBasicBlock> block,
+      SsaRewriter(RtlBasicBlock &block,
                   SsaMapper &mapper,
                   ControlFlowAnalysis &controlFlow,
                   DataflowAnalysis &dataFlow);
@@ -62,14 +62,14 @@ namespace nnc {
 
       void operator()();
 
-      inline std::shared_ptr<RtlBasicBlock> block() const { return m_block; }
+      inline RtlBasicBlock &block() const { return m_block; }
       inline ControlFlowAnalysis &controlFlow() const { return m_controlFlow; }
       inline DataflowAnalysis &dataFlow() const { return m_dataFlow; }
 
       inline SsaMapper &aliases() const { return m_aliases; }
 
     private:
-      std::shared_ptr<RtlBasicBlock> m_block;
+      RtlBasicBlock &m_block;
       ControlFlowAnalysis &m_controlFlow;
       DataflowAnalysis &m_dataFlow;
       SsaMapper &m_aliases;

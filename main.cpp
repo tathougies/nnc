@@ -97,9 +97,14 @@ int main(int argc, const char **argv) {
 //  auto &output(graph.addTensor<nnc::op::MatMul> (weights, flattened));
 //  graph.addOutput(output);
 
-  auto &a(graph.addInputTensor<float, 32>("a"));
-  auto &b(graph.addInputTensor<float, 32>("b"));
-  auto &output(graph.addTensor<nnc::op::AddOp>(a, b));
+//  auto &a(graph.addInputTensor<float, 8>("a"));
+//  auto &b(graph.addInputTensor<float, 8>("b"));
+//  auto &output(graph.addTensor<nnc::op::AddOp>(a, b));
+//  graph.addOutput(output);
+
+  auto &a(graph.addInputTensor<float, 3, 3>("a"));
+  auto &b(graph.addInputTensor<float, 3, 3>("b"));
+  auto &output(graph.addTensor<nnc::op::MatMul>(a, b));
   graph.addOutput(output);
 
   nnc::error::OstreamErrorReporter reporter(std::cerr);
@@ -113,7 +118,7 @@ int main(int argc, const char **argv) {
   nnc::graphviz::DotOutput dotter(graph, o);
   graph.visit(dotter);
 
-  nnc::executor::CpuExecutor exec(graph, 10);
+  nnc::executor::CpuExecutor exec(graph, 1);
   exec.build();
 
   std::cerr << "Loop structure" << std::endl;
@@ -130,56 +135,30 @@ int main(int argc, const char **argv) {
   nnc::invoke::FunctionLibrary lib;
   mgr.compile(lib, fn);
 
-  float input1[320], input2[320], result[320];
-  int testaeu[320];
-  std::fill(std::begin(input1), std::end(input1), 1);
-  std::fill(std::begin(input2), std::end(input2), 2);
+//  float input1[320], input2[320], result[320];
+//  int testaeu[320];
+//  std::fill(std::begin(input1), std::end(input1), 1);
+//  std::fill(std::begin(input2), std::end(input2), 2);
+//  std::fill(std::begin(result), std::end(result), 0);
+
+  float input1[] =
+    { 1.0, 2.0, 3.0,
+      4.0, 5.0, 6.0,
+      7.0, 8.0, 9.0 };
+
+  float result[9];
   std::fill(std::begin(result), std::end(result), 0);
-  lib["simple.run"].invoke<void>( input1, input2, result );
 
-  std::cerr << "Result is " << result[1] << " " << result[0] << std::endl;
+  try {
+    lib["simple.run"].invoke<void>(input1, input1, result);
+  } catch (nnc::exception::RuntimeArityMismatch &e) {
+    std::cerr << "Arity mismatch... Expected " << e.expected() << ", given " << e.given() << std::endl;
+  }
 
-  // No errors, now let's try compiling the graph into something we can actually do
-
-//
-//  auto &layer1(graph.addTensor<nnc::op::Sigmoid>(graph.addTensor<nnc::op::AddOp>(graph.addTensor< nnc::op::MatVecMul >(weights, flattened),
-//                                                                                 biases)));
-//  auto &layer2(graph.addTensor<nnc::op::Sigmoid>(graph.addTensor<nnc::op::AddOp>(graph.addTensor< nnc::op::MatVecMul >(weights2, layer1),
-//                                                                                 biases2)));
-//
-//  auto &error(graph.addTensor<nnc::op::SqrtOp>(graph.addTensor<nnc::op::SumOp>(graph.addTensor<nnc::op::PowOp>(graph.addTensor<nnc::op::SubOp>(layer2, expected),
-//                                                                                                               graph.addTensor< nnc::op::ConstTensor<> >({ 2 })))));
-
-//
-//  // How this works... randomly choose ten images. Propagate backwards and forwards
-//
-//  auto &weightsGradient(graph.derivative(error, weights));
-//  auto &weights2Gradient(graph.derivative(error, weights2));
-//  auto &biasesGradient(graph.derivative(error, biases));
-//  auto &biases2Gradient(graph.derivative(error, biases2));
-//
-//  // Executor of the graph at batch size 10
-//  auto &executor(graph.makeExecutor().batchSize(10).calculate(weightsGradient).calculate(weights2Gradient).calculate(biasesGradient).calculate(biases2Gradient).build());
-//
-//  auto &invocation(executor.invocation()
-//                   .input("image", randomImages)
-//                   .input("label", expLabels));
-//   
-//  invocation.get(weightsGradient)
-//
-//    .invoke();
-
-  /* Graph can be serialized to disk */
-
-  /* This adds/removes operations in the graph, so that everything can
-     be executed on the CPU */
-  //  nnc::optimizer::cpu::auto_optimizer().optimize(graph);
-
-//  auto invocation(graph.make_invocation());
-//  invocation.setInput("image", mnist[i, nnc::ix::all, nnc::ix::all]);
-//  invocation.invoke();
-
-
+  std::cerr << "Result is: " << std::endl
+            << "  " << result[0] << " " << result[1] << " " << result[2] << std::endl
+            << "  " << result[3] << " " << result[4] << " " << result[5] << std::endl
+            << "  " << result[6] << " " << result[7] << " " << result[8] << std::endl;
 
   /* Now cpu can be directly executed */
 

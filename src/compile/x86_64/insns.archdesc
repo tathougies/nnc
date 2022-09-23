@@ -20,6 +20,14 @@ insn imul(->$dst, $a, $b) {
   constructor(register, modrm, constant);
 }
 
+insn mulss(->$dst, $a, $b) {
+  var $a: register(f32, avx);
+  var $b: modrm(f32, avx);
+  var $dst: register(f32, avx);
+
+  constructor(register, register, modrm);
+}
+
 insn test($a, $b, ->[$sign], ->[$zero], ->[$parity]) {
   var $sign : register(u1, sf);
   var $zero : register(u1, zf);
@@ -46,8 +54,11 @@ insn mov(->$dst, $src) {
 
   constructor(modrm, register);
   constructor(register, modrm);
-//  constructor(register, constant);
-//  constructor(modrm, constant);
+}
+
+insn movzx(->$dst, $src) {
+  var $dst: register(u64, gp);
+  var $src: modrm(u64, gp);
 }
 
 insn addss(->$dst, $a, $b) {
@@ -60,7 +71,7 @@ insn addss(->$dst, $a, $b) {
 
 insn movss(->$dst, $src) {
   var $dst: modrm(f32, avx);
-  var $src: modrm(f32, avx);
+  var $src: modrmimm(f32, avx);
 
   constructor(register, modrm);
   constructor(modrm, register);
@@ -112,4 +123,9 @@ insn add(->$dst, $a, $b) {
 //  before {
 //    assign $a $dst; // Note that a should be moved into the destination
 //  }
+}
+
+insn cvtsi2ss(->$dst, $src) {
+  var $src: modrm(u64, gp);
+  var $dst: register(f32, avx);
 }

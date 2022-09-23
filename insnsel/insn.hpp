@@ -63,6 +63,9 @@ public:
                                const std::string &bNm,
                                const std::string &regclassNm, std::ostream &out) const;
 
+  virtual bool canBeImpure() const;
+  virtual void outputIsPure(const std::string &memName, std::ostream &out) const;
+
   class SettersVisitor {
   public:
     virtual void setter(const std::string &setter, const template_string &code) =0;
@@ -229,13 +232,16 @@ public:
   virtual void setters(SettersVisitor &v) const;
   virtual bool hasRegClass() const;
 
+  virtual bool canBeImpure() const override;
+  virtual void outputIsPure(const std::string &memName, std::ostream &out) const;
+
   void setRtlType(const InsnRtlType &ty);
 
   inline bool acceptsRtlType() const { return m_acceptsRtlType; }
 
 protected:
   template_string m_name, m_makeDefault, m_visitOperand, m_visitRegclasses, m_intersect;
-  std::optional<template_string> m_default;
+  std::optional<template_string> m_default, m_canBeImpure;
   std::optional<InsnRtlType> m_rtlType;
   std::map<std::string, template_string> m_setters;
   bool m_acceptsRtlType;

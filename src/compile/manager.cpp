@@ -18,8 +18,6 @@ namespace nnc::compile {
     cpu.visitAll(translator);
     translator.finish();
 
-    m_entries.emplace(name, translator.entry()->name());
-
     return it->second;
   }
 
@@ -38,10 +36,6 @@ namespace nnc::compile {
                               std::forward_as_tuple(fn)).first;
     }
 
-    auto entry(m_entries.find(fn.functionName()));
-    if ( entry == m_entries.end() )
-      throw std::runtime_error("Could not find entry");
-
     FunctionContext &ctxt(it->second);
 
     ctxt.cprop1();
@@ -53,7 +47,7 @@ namespace nnc::compile {
     // Constant propagation
 
 
-    schedule(fn, entry->second, lib);
+    schedule(fn, lib);
   }
 
   DefaultManager::FunctionContext::FunctionContext(RtlFunction &fn)

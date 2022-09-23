@@ -11,6 +11,17 @@ code "rules_preamble_namespaced" [[
       return __builtin_ctz(u);
     } else return -1;
   }
+
+  bool makeShiftValue(std::shared_ptr<nnc::compile::RtlType> pow2ty, std::span<std::uint8_t> &pow2,
+                      int &shiftValue) {
+      if ( pow2ty && ::nnc::compile::isIntType(*pow2ty) ) {
+        shiftValue = log2(::nnc::compile::interpretAsInt(pow2));
+        return ( shiftValue >= 0 && shiftValue <= 3 );
+      } else {
+        shiftValue = 0;
+        return !pow2ty;
+      }
+  }
 ]];
 
 insnrule load_zero {
@@ -19,7 +30,7 @@ insnrule load_zero {
   var $out : register;
 
 //  regclass $out gp;
-  if [[ isZero($x) ]];
+  if [[ isZero($x) && isIntType(*$ty) ]];
 
   pattern {
     const(const=($ty) $x, dest->($ty) $out);
@@ -32,16 +43,66 @@ insnrule load_zero {
   }
 }
 
-insnrule load_const {
+insnrule load_const_gp {
   var $x : constant;
   var $out : register;
   var $ty : regtype;
+
+  if [[ isIntType(*$ty) ]];
 
   pattern {
     const(const=($ty) $x, dest->$out);
   }
   asm {
     mov($out, [[ ::nnc::arch::x86_64::types::modrmimm($x, $ty) ]]);
+  }
+}
+
+insnrule load_const_fp {
+  var $x : constant;
+  var $out : register;
+  var $ty : regtype;
+
+  check [[
+    ::nnc::compile::RtlTypeInfo info(*$ty);
+    return info.isFloatType();
+  ]];
+
+  pattern {
+    const(const=($ty) $x, dest->$out);
+  }
+  asm {
+    movss($out, [[ ::nnc::arch::x86_64::types::modrmimm($x, $ty) ]]);
+  }
+}
+
+insnrule float_mul {
+  var $ty: regtype;
+  var $c : constant;
+  var $x : register;
+  var $y : register;
+  var $out : register;
+
+  pattern {
+   { const(const=$c, dest->$y); }?
+   { mul(left=($ty)$x, right=$y, dest->$out);
+   | mul(left=($ty)$y, right=$x, dest->$out); }
+  }
+
+  check [[
+    ::nnc::compile::RtlTypeInfo info(*$ty);
+    if ( !info.isFloatType() ) return false;
+
+    if ( $c.data() ) {
+       std::cerr << "TODO constant alloation" << std::endl;
+       return false;
+    }
+    return info.width() == 64 || info.width() == 32;
+  ]];
+
+  asm {
+    [[::nnc::compile::RtlTypeInfo info(*$ty);]];
+    mulss($out, $x, $y) if [[ info.width() == 32 ]];
   }
 }
 
@@ -58,14 +119,18 @@ insnrule sint_mul {
     | mul(left=($ty)$y, right=$x, dest->$out); }
   }
 
-  check [[ std::cerr << "Got mul " << $ty << " " << $x->name() << " constant: " << (void *) $c.data() << std::endl;
-           return true; ]];
   if [[isIntType(*$ty) ]];
+  check [[
+    ::nnc::compile::RtlTypeInfo info(*$ty);
+    if ( $c.data() ) {
+      return info.width() <= 32;
+    } else
+      return true;
+  ]];
 
   asm {
     [[::nnc::compile::RtlTypeInfo info(*$ty);]];
-    imul($out, $y, [[$c.data() ? ::nnc::arch::x86_64::types::modrmimm($c, $ty) : $x]]) if [[ info.intFormat() == ::nnc::compile::RtlTwosComplement ]];
-//    mul($out, $x, $y) if [[ info.intFormat() == ::nnc::compile::RtlUnsigned ]];
+    imul($out, $x, [[$c.data() ? ::nnc::arch::x86_64::types::modrmimm($c, $ty) : $y]]) if [[ info.intFormat() == ::nnc::compile::RtlTwosComplement ]];
   }
 };
 
@@ -130,16 +195,7 @@ insnrule indexed_muladd {
   ]];
 
   if [[ isIntType(*$ty) ]];
-
-  check [[
-      if ( $pow2ty && isIntType(*$pow2ty) ) {
-        shiftValue = log2(::nnc::compile::interpretAsInt($pow2));
-        return ( shiftValue >= 0 && shiftValue <= 3 );
-      } else {
-      shiftValue = 0;
-      return !$pow2ty;
-      }
-  ]];
+  if [[ makeShiftValue($pow2ty, $pow2, shiftValue) ]];
 
   asm {
     lea($intptr, [[::nnc::arch::x86_64::types::modrm::memref($base, $ty, $scaledIndex ? $scaledIndex : $index, shiftValue)]]);
@@ -174,13 +230,7 @@ insnrule indexed_load {
   extraPrivate = [[
     int shiftValue;
   ]];
-
-  check [[
-      if ( $pow2ty && isIntType(*$pow2ty) ) {
-        shiftValue = log2(::nnc::compile::interpretAsInt($pow2));
-        return ( shiftValue >= 0 && shiftValue <= 3 );
-      } else { shiftValue = 0; return true; }
-  ]];
+  if [[ makeShiftValue($pow2ty, $pow2, shiftValue) ]];
 
   check [[
     ::nnc::compile::RtlTypeInfo info(*$ty);
@@ -206,6 +256,17 @@ insnrule inttoptr {
   }
 
   alias $intptr $ptr;
+}
+
+insnrule assign {
+   var $src : register;
+   var $dst : register;
+
+   pattern {
+     mov(in=$src, out=$dst);
+   }
+
+   alias $src $dst;
 }
 
 insnrule load {
@@ -272,13 +333,7 @@ insnrule indexed_store {
   extraPrivate = [[
     int shiftValue;
   ]];
-
-  check [[
-      if ( $pow2ty && isIntType(*$pow2ty) ) {
-        shiftValue = log2(::nnc::compile::interpretAsInt($pow2));
-        return ( shiftValue >= 0 && shiftValue <= 3 );
-      } else { shiftValue = 0; return true; }
-  ]];
+  if [[ makeShiftValue($pow2ty, $pow2, shiftValue) ]];
 
   asm {
     [[::nnc::compile::RtlTypeInfo info(*$ty);]];
@@ -412,6 +467,49 @@ insnrule zext_32_to_64 {
   alias $in $out;
 }
 
+insnrule zext_8_16_to_32_64 {
+  var $in: register;
+  var $out: register;
+  var $base : register;
+  var $index : register;
+  var $scale : register;
+  var $intptr : register;
+  var $scaledIndex : register;
+  var $pow2 : constant;
+  var $pow2ty : regtype;
+  var $ty : regtype;
+  var $ptr : register;
+
+  pattern {
+    {
+      { const(const=($pow2ty) $pow2, dest->$scale);
+        { mul(left=$scaledIndex, right=$scale, dest->$index) |
+          mul(left=$scale, right=$scaledIndex, dest->$index) }
+      }?
+
+      { add(left=$base, right=$index, dest->($ty) $intptr) |
+        add(left=$index, right=$base, dest->($ty) $intptr) }
+
+      inttoptr(in=$intptr, out->$ptr);
+      load(addr=$ptr, dest->$in);
+    }?
+
+    zext(in=$in, out->$out);
+  }
+
+  extraPrivate = [[
+    int shiftValue;
+  ]];
+
+  if [[ $ty && isIntType(*$ty) ]];
+  if [[ makeShiftValue($pow2ty, $pow2, shiftValue) ]];
+
+  asm {
+    movzx($out, [[::nnc::arch::x86_64::types::modrm::memref($base, $ty, $scaledIndex ? $scaledIndex : $index, shiftValue)]]) if [[$ptr]];
+    movzx($out, $in) if [[ !($ptr) ]];
+  }
+}
+
 // Ptrto int
 insnrule ptr_to_int64 {
   var $ptr : register;
@@ -426,3 +524,37 @@ insnrule ptr_to_int64 {
   alias $ptr $int;
 }
 
+insnrule i_to_float {
+  var $src: register;
+  var $dst: register;
+  var $srcty: regtype;
+  var $dstty: regtype;
+
+  pattern {
+    uitofp(in=($srcty) $src, out=($dstty) $dst);
+  }
+
+  // This conversion works if the integer is signed or unsigned, but for
+  // unsigned integers, the width must be less than 64
+  check [[
+    nnc::compile::RtlTypeInfo srcinfo(*$srcty);
+    assert(srcinfo.isIntType());
+
+    if ( srcinfo.width() > 64 ) return false; // Have to zero-extend first
+    if ( srcinfo.intFormat() == nnc::compile::RtlUnsigned ) {
+      if ( srcinfo.width() == 64 ) return false;
+    } else if ( srcinfo.intFormat() == nnc::compile::RtlOnesComplement ) return false;
+
+    nnc::compile::RtlTypeInfo dstinfo(*$dstty);
+    assert(dstinfo.isFloatType());
+
+    if ( dstinfo.width() > 64 ) return false; // Can't do this for float 64
+
+    return true;
+  ]];
+
+  asm {
+    [[nnc::compile::RtlTypeInfo dstinfo(*$dstty);]];
+    cvtsi2ss($dst, $src) if [[dstinfo.width() <= 32]];
+  }
+}

@@ -17,7 +17,7 @@ namespace nnc {
     }
 
     void ControlFlowAnalysis::findPredecessors(const RtlBlockName &nm,
-                                               std::vector<RtlBlockName> &pres) {
+                                               std::vector<RtlBlockName> &pres) const {
       auto first(m_jumpTargets.lower_bound(nm));
       auto last(m_jumpTargets.upper_bound(nm));
       std::transform(first, last, std::back_inserter(pres),
@@ -29,13 +29,13 @@ namespace nnc {
       m_jumpTargets.clear();
       m_jumps.clear();
 
-      for ( const auto &block: m_function.blocks() ) {
+      for ( auto &block: m_function.blocks() ) {
         // Go throw all branch instructions
-        for ( const auto &jump: block.second->jumps() ) {
-          auto source(std::make_pair(block.first, jump.second.to()));
+        for ( const auto &jump: block.jumps() ) {
+          auto source(std::make_pair(block.name(), jump.second.to()));
 
           m_jumpSources.insert(source);
-          m_jumpTargets.insert(std::make_pair(jump.second.to(), block.first));
+          m_jumpTargets.insert(std::make_pair(jump.second.to(), block.name()));
           m_jumps.insert(std::make_pair(source, RtlBlockEdge(jump.first)));
         }
       }

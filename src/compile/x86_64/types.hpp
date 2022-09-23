@@ -2,6 +2,7 @@
 #define __nnc_compile_x86_64_types_HPP__
 
 #include "compile/rtl.hpp"
+#include "compile/insnsel.hpp"
 #include "compile/rtl_ops_base.hpp"
 #include "compile/regalloc.hpp"
 

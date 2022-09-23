@@ -5,5 +5,5 @@ with pkgs;
 stdenv.mkDerivation {
   name = "nnc";
 
-  buildInputs = [ cmake opencl-headers catch2 clang pkg-config gdb flex bison valgrind ninja graphviz ];
+  buildInputs = [ cmake opencl-headers catch2 clang pkg-config gdb flex bison valgrind ninja graphviz ccls ];
 }

@@ -1223,7 +1223,19 @@ void ArchDescBuilder::generateInsnsImpl(const std::filesystem::path &outPath) {
 
     h.indent() << declMember("std::uint64_t", clsNm, "cost")._const() << "{ return " << insn->cost() << "; }" << std::endl << std::endl;
 
-    h.indent() << declMember("std::ostream &", clsNm, "encode").arg("const ::nnc::compile::RtlRegisterMapper &inputs").arg("const ::nnc::compile::RtlRegisterMapper &outputs").arg("std::ostream &out")._const() << "{" << std::endl;
+    h.indent() << declMember("bool", clsNm, "isPure")._const() << "{" << std::endl;
+    for ( const auto &arg: insn->args() ) {
+      if ( arg.type().canBeImpure() &&
+           (arg.direction() == InsnArgDecl::Output || arg.direction() == InsnArgDecl::InputOutput) ) {
+        h.indent(1) << "if ( !";
+        arg.type().outputIsPure("(this->m_" + cName(arg.name()) + ")", h.noindent());
+        h.noindent() << " ) { return false; }" << std::endl;
+      }
+    }
+    h.indent(1) << "return true;" <<  std::endl;
+    h.indent() << "}" << std::endl;
+
+    h.indent() << declMember("void", clsNm, "encode").arg("const ::nnc::compile::RtlRegisterMapper &inputs").arg("const ::nnc::compile::RtlRegisterMapper &outputs").arg("compile::BytecodeEmitter &out")._const() << "{" << std::endl;
     if ( insn->hasCustomEmit() ) {
       std::map<std::string, std::string> varNms;
       for ( const auto &var : insn->args() ) {
@@ -1244,7 +1256,6 @@ void ArchDescBuilder::generateInsnsImpl(const std::filesystem::path &outPath) {
       }
       h.noindent() << ");" << std::endl;
     }
-    h.indent(1) << "return out;" << std::endl;
     h.indent() << "}" << std::endl;
   }
 }
@@ -1294,28 +1305,30 @@ void ArchDescBuilder::generateScheduleHeader(const std::filesystem::path &outPat
   h.pushNamespace(cArchName());
   h.pushNamespace("schedule");
 
-  std::string scheduleClsNm("block_scheduler");
-
-  h.indent() << "class " << scheduleClsNm << " : public ::nnc::compile::GenericScheduler {" << std::endl;
-  h.indent() << "public:" << std::endl;
-  h.indent(1) << scheduleClsNm << "(::nnc::compile::GenericFunctionScheduler &dst, std::shared_ptr<::nnc::compile::RtlBasicBlock> b);" << std::endl;
-  h.indent(1) << "virtual ~" << scheduleClsNm << "();" << std::endl << std::endl;
-  h.indent() << "protected:" << std::endl;
-  h.indent(1) << "virtual void buildPatterns(::nnc::compile::InsnSelector &sel);" << std::endl;
-  h.indent() << "};" << std::endl << std::endl;
-
-  std::string fnScheduleClsNm("scheduler");
-  h.indent() << "class " << fnScheduleClsNm << " : public ::nnc::compile::GenericFunctionScheduler {" << std::endl;
-  h.indent() << "public:" << std::endl;
-  h.indent(1) << fnScheduleClsNm << "(::nnc::compile::RtlFunction &src);" << std::endl;
-  h.indent(1) << "virtual ~" << fnScheduleClsNm << "();" << std::endl << std::endl;
-  h.indent(1) << "virtual ::nnc::compile::RegisterFile &registers() const override;" << std::endl << std::endl;
-  h.indent() << "protected:" << std::endl;
-  h.indent(1) << "virtual std::unique_ptr<::nnc::compile::GenericScheduler> makeBlockScheduler(std::shared_ptr<::nnc::compile::RtlBasicBlock> block);" << std::endl;
-  h.indent(1) << "virtual std::unique_ptr<::nnc::compile::CallingConvention> defaultCallingConvention() const;" << std::endl;
-  h.indent(1) << "virtual const ::nnc::compile::InsnEncoder &defaultInsnEncoder() const;" << std::endl;
-  h.indent(1) << m_defaultInsnEncoder << " m_encoder;" << std::endl;
-  h.indent() << "};" << std::endl;
+  h.indent() << "void buildInsnRules(::nnc::compile::InsnSelector &b);" << std::endl;
+//
+//  std::string scheduleClsNm("block_scheduler");
+//
+//  h.indent() << "class " << scheduleClsNm << " : public ::nnc::compile::GenericScheduler {" << std::endl;
+//  h.indent() << "public:" << std::endl;
+//  h.indent(1) << scheduleClsNm << "(::nnc::compile::GenericFunctionScheduler &dst, std::shared_ptr<::nnc::compile::RtlBasicBlock> b);" << std::endl;
+//  h.indent(1) << "virtual ~" << scheduleClsNm << "();" << std::endl << std::endl;
+//  h.indent() << "protected:" << std::endl;
+//  h.indent(1) << "virtual void buildPatterns(::nnc::compile::InsnSelector &sel);" << std::endl;
+//  h.indent() << "};" << std::endl << std::endl;
+//
+//  std::string fnScheduleClsNm("scheduler");
+//  h.indent() << "class " << fnScheduleClsNm << " : public ::nnc::compile::GenericFunctionScheduler {" << std::endl;
+//  h.indent() << "public:" << std::endl;
+//  h.indent(1) << fnScheduleClsNm << "(::nnc::compile::RtlFunction &src);" << std::endl;
+//  h.indent(1) << "virtual ~" << fnScheduleClsNm << "();" << std::endl << std::endl;
+//  h.indent(1) << "virtual ::nnc::compile::RegisterFile &registers() const override;" << std::endl << std::endl;
+//  h.indent() << "protected:" << std::endl;
+//  h.indent(1) << "virtual std::unique_ptr<::nnc::compile::GenericScheduler> makeBlockScheduler(std::shared_ptr<::nnc::compile::RtlBasicBlock> block);" << std::endl;
+//  h.indent(1) << "virtual std::unique_ptr<::nnc::compile::CallingConvention> defaultCallingConvention() const;" << std::endl;
+//  h.indent(1) << "virtual const ::nnc::compile::InsnEncoder &defaultInsnEncoder() const;" << std::endl;
+//  h.indent(1) << m_defaultInsnEncoder << " m_encoder;" << std::endl;
+//  h.indent() << "};" << std::endl;
 }
 
 
@@ -1331,6 +1344,7 @@ void ArchDescBuilder::generateInsnsHeader(const std::filesystem::path &outPath) 
   h.indent() << "#include \"compile/rtl_ops_base.hpp\"" << std::endl;
   h.indent() << "#include \"compile/encoding.hpp\"" << std::endl;
   h.indent() << "#include \"compile/regalloc.hpp\"" << std::endl;
+  h.indent() << "#include \"compile/insnsel.hpp\"" << std::endl;
 
   h.pushNamespace("nnc");
   h.pushNamespace("arch");
@@ -1348,7 +1362,8 @@ void ArchDescBuilder::generateInsnsHeader(const std::filesystem::path &outPath) 
     h.indent(1) << "virtual void operands(::nnc::compile::RtlOperandVisitor &v) const;" << std::endl;
     h.indent(1) << "virtual void operand(const std::string &nm, std::shared_ptr<::nnc::compile::RtlVariable> var);" << std::endl;
     h.indent(1) << "virtual void regclasses(::nnc::compile::RegClassDeclarer &decl) const;" << std::endl;
-    h.indent(1) << "virtual std::ostream &encode(const ::nnc::compile::RtlRegisterMapper &inputs, const ::nnc::compile::RtlRegisterMapper &outputs, std::ostream &out) const override;" << std::endl;
+    h.indent(1) << "virtual void encode(const ::nnc::compile::RtlRegisterMapper &inputs, const ::nnc::compile::RtlRegisterMapper &outputs, compile::BytecodeEmitter &out) const override;" << std::endl;
+    h.indent(1) << "virtual bool isPure() const override;" << std::endl;
     h.indent(1) << "virtual std::uint64_t cost() const override;" << std::endl;
 
     h.noindent() << std::endl;
@@ -1590,51 +1605,11 @@ void ArchDescBuilder::generateRuleImpl(const std::filesystem::path &outPath) {
   h.popNamespace();
   h.pushNamespace("schedule");
 
-  std::string scheduleClsNm("block_scheduler");
-  h.indent() << scheduleClsNm << "::" << scheduleClsNm << "(::nnc::compile::GenericFunctionScheduler &dst, std::shared_ptr<::nnc::compile::RtlBasicBlock> b)" << std::endl;
-  h.indent(1) << ": ::nnc::compile::GenericScheduler(dst, b) {" << std::endl;
-  h.indent() << "}" << std::endl << std::endl;
 
-  h.indent() << scheduleClsNm << "::~" << scheduleClsNm << "() {" << std::endl;
-  h.indent() << "}" << std::endl << std::endl;
-
-  h.indent() << "void " << scheduleClsNm << "::buildPatterns(::nnc::compile::InsnSelector &sel) {" << std::endl;
+  h.indent() << "void buildInsnRules(::nnc::compile::InsnSelector &sel) {" << std::endl;
   for ( const auto &rule: m_rules ) {
     h.indent(1) << "sel.addRule(std::make_unique<rules::" << cName(rule->name()) << ">());" << std::endl;
   }
-  h.indent() << "}" << std::endl;
-
-  std::string fnScheduleClsNm("scheduler");
-  h.indent() << fnScheduleClsNm << "::" << fnScheduleClsNm << "(::nnc::compile::RtlFunction &src)" << std::endl;
-  h.indent(1) << ": ::nnc::compile::GenericFunctionScheduler(src)" << std::endl;
-  h.indent() << "{" << std::endl;
-  h.indent() << "}" << std::endl << std::endl;;
-
-  h.indent() << declDestructor(fnScheduleClsNm) << std::endl;
-  h.indent() << "{" << std::endl;
-  h.indent() << "}" << std::endl << std::endl;
-
-  h.indent() <<
-    declMember("std::unique_ptr<::nnc::compile::GenericScheduler>", fnScheduleClsNm, "makeBlockScheduler")
-    .arg("std::shared_ptr<::nnc::compile::RtlBasicBlock> block") << std::endl;
-  h.indent() << "{" << std::endl;
-  h.indent(1) << scheduleClsNm << " *scheduler(new " << scheduleClsNm << "(*this, block));" << std::endl;
-  h.indent(1) << "return std::unique_ptr<::nnc::compile::GenericScheduler>(static_cast<::nnc::compile::GenericScheduler *>(scheduler));" << std::endl;
-  h.indent() << "}" << std::endl << std::endl;
-
-  h.indent() << declMember("std::unique_ptr<::nnc::compile::CallingConvention>", fnScheduleClsNm, "defaultCallingConvention")._const() << std::endl;
-  h.indent() << "{" << std::endl;
-  h.indent(1) << "return std::make_unique<" << m_defCallConv << ">();" << std::endl;
-  h.indent() << "}" << std::endl;
-
-  h.indent() << declMember("const ::nnc::compile::InsnEncoder &", fnScheduleClsNm, "defaultInsnEncoder")._const() << std::endl;
-  h.indent() << "{" << std::endl;
-  h.indent(1) << "return m_encoder;" << std::endl;
-  h.indent() << "}" << std::endl;
-
-  h.indent() << declMember("::nnc::compile::RegisterFile &", fnScheduleClsNm, "registers")._const() << std::endl;
-  h.indent() << "{" << std::endl;
-  h.indent(1) << "return ::nnc::arch::" << cArchName() << "::registers;" << std::endl;
   h.indent() << "}" << std::endl;
 
   codeSection(h.noindent(), "rules_postamble_namespaced");

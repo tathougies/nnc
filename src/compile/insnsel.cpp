@@ -38,7 +38,7 @@ namespace nnc {
     }
 
     void RtlArbitraryOp::operands(RtlOperandVisitor &v) const {
-      v.operand("var", m_var);
+      v.operand("var", m_var, false, true);
     }
 
     void RtlArbitraryOp::operand(const std::string &nm, RtlVariablePtr var) {

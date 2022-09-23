@@ -3,6 +3,8 @@
 
 #include "compile/rtl.hpp"
 
+#include <optional>
+
 namespace nnc {
   namespace exception {
     class RtlVariableWrittenTwice : public std::exception {

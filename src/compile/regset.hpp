@@ -43,6 +43,7 @@ namespace nnc::compile {
     void insert(int ix);
 
     bool empty() const;
+    void clear();
 
     template<typename It>
     class base_iterator {

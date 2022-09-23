@@ -81,8 +81,7 @@ namespace nnc {
 
       inline RtlIntSignedness intFormat() const { return m_signedness; }
 
-    private:
-
+    protected:
       TypeClass m_cls;
       RtlIntSignedness m_signedness;
       std::size_t m_width;

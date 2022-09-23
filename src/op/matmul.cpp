@@ -193,31 +193,27 @@ namespace nnc {
 
       dataType().zeroValue(zero);
 
-      loop->constant(zero.data(), zero.size(),
-                     loop->fullyIndexed(dest));
+      auto accum(loop->scalar("accum", dataType()));
+      loop->constant(zero.data(), zero.size(), accum);
 
       std::vector< std::shared_ptr<executor::BasicTensorInput> > index;
 
       int innerDimension(m_left->shape().sizeInDimension(0));
-      auto sumLoop(loop->loop(innerDimension));
 
-      auto product(sumLoop->scalar(dataType()));
+      {
+        auto sumLoop(loop->loop(innerDimension));
 
-      // Left index, columns is the inner dimension
-      loop->fullIndex(index);
-      index[0] = sumLoop->loopIndex(0);
+        auto product(sumLoop->scalar("prod", dataType()));
 
-      auto left(sumLoop->index(inputs.input("left"), index));
+        // Left index, columns is the inner dimension
+        auto left(sumLoop->index(inputs.input("left"),{ sumLoop->loopIndex(0), sumLoop->loopIndex(-3), sumLoop->loopIndex(-1) }));
+        auto right(sumLoop->index(inputs.input("right"), { sumLoop->loopIndex(0), sumLoop->loopIndex(-1), sumLoop->loopIndex(-2) }));
 
-      // Right index, rows is the inner dimension
-      loop->fullIndex(index);
-      index[1] = sumLoop->loopIndex(0);
+        sumLoop->product(left, right, product);
+        sumLoop->add(accum, product, accum);
+      }
 
-      auto right(sumLoop->index(inputs.input("right"), index));
-
-      sumLoop->product(left, right, product);
-      sumLoop->add(sumLoop->fullyIndexed(dest),
-                   product, sumLoop->fullyIndexed(dest));
+      loop->cast(dataType(), dataType(), accum, loop->fullyIndexed(dest));
     }
   }
 }

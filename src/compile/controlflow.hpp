@@ -18,6 +18,9 @@ namespace nnc {
 
     class ControlFlowAnalysis {
     public:
+      typedef RtlBlockName node_type;
+      typedef RtlBlockName id_type;
+
       ControlFlowAnalysis(RtlFunction &fn);
 
       void reanalyze();
@@ -25,7 +28,8 @@ namespace nnc {
       inline RtlFunction &function() const { return m_function; }
 
       void findPredecessors(const RtlBlockName &nm,
-                            std::vector<RtlBlockName> &pres);
+                            std::vector<RtlBlockName> &pres) const;
+
 
     private:
       RtlFunction &m_function;

@@ -9,7 +9,7 @@ namespace nnc::compile {
   public:
     UnusedVarCuller(RtlFunction &fn);
 
-    void cullBlock(std::shared_ptr<RtlBasicBlock> block);
+    void cullBlock(RtlBasicBlock &block);
     void operator() ();
 
     inline RtlFunction &function() const { return m_function; }

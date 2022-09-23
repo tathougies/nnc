@@ -1,6 +1,11 @@
 #ifndef __nnc_graph_dfs_HPP__
 #define __nnc_graph_dfs_HPP__
 
+#include <set>
+#include <deque>
+#include <optional>
+#include <list>
+
 namespace nnc::graph {
   template<typename Node>
   class NoContextTracker {
@@ -60,6 +65,37 @@ namespace nnc::graph {
     std::optional<Node> m_parent;
   };
 
+  template<typename Node>
+  class PathTracker {
+  public:
+    typedef PathTracker<Node> value_type;
+    typedef Node node_type;
+
+    PathTracker(Node n) : m_me(n) {
+      m_path.push_back(n);
+    }
+    PathTracker(Node n, const PathTracker &p)
+      : m_me(n), m_path(p.m_path) {
+      m_path.push_back(n);
+    }
+
+    PathTracker<Node> &get() { return *this; }
+    const PathTracker<Node> &get() const { return *this; }
+
+    PathTracker<Node> operator+(const Node &n) const {
+      return PathTracker(n, m_me);
+    }
+
+    node_type &operator*() { return *m_me; }
+    const node_type &operator*() const { return m_me; }
+
+    const std::list<Node> &path() const { return m_path; }
+
+  private:
+    Node m_me;
+    std::list<Node> m_path;
+  };
+
   template< typename Gr, typename Tracker = NoContextTracker<typename Gr::node_type> >
   class dfs {
   public:
@@ -77,12 +113,22 @@ namespace nnc::graph {
 
     void follow(const Tracker &t) {
       // Get all successors
-      m_graph.successors(*t, [this, &t](const typename Gr::id_type &nm, const typename Gr::node_type &v) {
+      follow(*t, [&t](const auto &v) { return t + v; });
+    }
+
+    void follow(const typename Tracker::node_type &v) {
+      follow(v, [](const auto &v) { return Tracker(v); });
+    }
+
+    template<typename F>
+    void follow(const typename Tracker::node_type &v,
+                const F &makeTracker) {
+      m_graph.successors(v, [this, &v](const typename Gr::id_type &nm, const typename Gr::node_type &v) {
         auto it(m_visited.find(nm));
         if ( it != m_visited.end() ) return;
 
         m_visited.emplace(nm);
-        m_queue.emplace_front(t + v);
+        m_queue.emplace_front(makeTracker(v));
       });
     }
 
@@ -99,6 +145,7 @@ namespace nnc::graph {
     const Tracker &peek() const {
       return m_queue.front();
     }
+
     Tracker &peek() {
       return m_queue.front();
     }

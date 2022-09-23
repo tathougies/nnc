@@ -2,7 +2,9 @@
 #include "compile/rtl_types.hpp"
 #include "compile/rtl_ops.hpp"
 #include "compile/rtl_type_factory_impl.hpp"
+#include "compile/dump.hpp"
 
+#include <cassert>
 #include <cctype>
 #include <climits>
 #include <experimental/iterator>
@@ -48,49 +50,6 @@ namespace nnc {
   }
 
   namespace compile {
-    OperandPrinter::OperandPrinter(RtlFunction &fn, std::ostream &out)
-      : RtlOperandVisitor(fn)
-      , m_out(out), m_first(true) {
-    }
-
-    OperandPrinter::~OperandPrinter() {
-    };
-
-    void OperandPrinter::operand(const std::string &name, std::shared_ptr<RtlVariable> var, bool input, bool output) {
-        next();
-        m_out << name;
-        if ( input && output ) m_out << "<->";
-        else if ( output ) m_out << "->";
-        else m_out << "=";
-        var->type()->output(m_out);
-        m_out << " " << var->name();
-      }
-
-    void OperandPrinter::operand(const std::string &name, std::shared_ptr<RtlType> ty, const void *l, std::size_t lsz) {
-        next();
-        m_out << name << "=<";
-        ty->output(m_out);
-
-        m_out << ">[";
-        std::uint8_t *c((std::uint8_t *) l);
-        std::copy(c, c + lsz,
-                  std::ostream_iterator<std::uint32_t>(m_out, " "));
-        m_out << "]";
-      }
-
-    void OperandPrinter::operand(const std::string &name, const RtlBlockName &dest) {
-      next();
-      m_out << name << "=block" << dest.index();
-    }
-
-
-    void OperandPrinter::next() {
-      if ( m_first ) { m_first = false; }
-      else {
-        m_out << ", ";
-      }
-    }
-
     RtlVariable::RtlVariable(const std::string &name,
                              std::shared_ptr<RtlType> type)
       : m_name(name), m_type(type) {
@@ -152,6 +111,11 @@ namespace nnc {
     }
 
     void RtlJump::push_argument(std::shared_ptr<RtlVariable> arg) {
+      assert(arg);
+      if (!arg) {
+        std::cerr << "Bad arg" << std::endl;
+        exit(1);
+      }
       m_args.push_back(arg);
     }
 
@@ -214,6 +178,30 @@ namespace nnc {
       return m_jumps.find(cond) != m_jumps.end();
     }
 
+    bool RtlBasicBlock::has_jump_to(const RtlBlockName &to) const {
+      auto call(std::find_if(jumps().begin(),
+                             jumps().end(),
+                             [&](const auto &j) {
+                               return j.second.to() == to; }));
+      return call != jumps().end();
+    }
+
+    RtlJump &RtlBasicBlock::get_jump_to(const RtlBlockName &to) {
+      auto call(std::find_if(jumps().begin(),
+                             jumps().end(),
+                             [&](const auto &j) {
+                               return j.second.to() == to; }));
+      return call->second;
+    }
+
+    const RtlJump &RtlBasicBlock::get_jump_to(const RtlBlockName &to) const {
+      auto call(std::find_if(jumps().begin(),
+                             jumps().end(),
+                             [&](const auto &j) {
+                               return j.second.to() == to; }));
+      return call->second;
+    }
+
     std::shared_ptr<RtlVariable> RtlBasicBlock::addInput(const std::string &namePrefix,
                                                          std::shared_ptr<RtlType> type) {
       auto input(m_function.variable(namePrefix, type));
@@ -252,6 +240,19 @@ namespace nnc {
         } else if ( srcIntType ) {
           auto destFloatType(std::dynamic_pointer_cast<RtlFloatType>(destType));
           if ( destFloatType ) {
+            if (srcIntType->width() < destFloatType->width()) {
+              auto orig(from);
+              from = function().variable(from->namePrefix(),
+                                         function().types().intType(srcIntType->signedness(), destFloatType->width()));
+              if (srcIntType->signedness() == RtlUnsigned) {
+                emplace_op<RtlZeroExtendOp>(orig, from);
+              } else if (srcIntType->signedness() == RtlSigned) {
+                emplace_op<RtlSignExtendOp>(orig, from);
+              }
+            } else if (srcIntType->width() > destFloatType->width()) {
+              throw std::runtime_error("Can't do cast from larger int to smaller float");
+            }
+
             // Int -> floating point conversion
             if ( srcIntType->signedness() == RtlUnsigned ) {
               emplace_op<RtlUiToFpOp>(from, to);
@@ -313,57 +314,16 @@ namespace nnc {
       m_ops.clear();
     }
 
-    RtlJumpIterator RtlBasicBlock::jumps() {
-      return RtlJumpIterator(*this, m_jumps.begin());
+    RtlBasicBlock::jumps_iterator RtlBasicBlock::jumps() {
+      return jumps_iterator(m_jumps);
     }
 
-    RtlJumpIterator::RtlJumpIterator(RtlBasicBlock &blk, const underlying &u)
-      : m_block(blk), m_underlying(u), m_unconditional(blk.m_jumps.end()) {
-      if ( m_underlying != m_block.m_jumps.end() ) {
-        if ( ! m_underlying->first ) {
-          m_unconditional = m_underlying;
-          ++m_underlying;
-        }
-      }
+    RtlBasicBlock::const_jumps_iterator RtlBasicBlock::jumps() const {
+      return const_jumps_iterator(m_jumps);
     }
 
-    RtlJumpIterator RtlJumpIterator::begin() {
-      return m_block.jumps();
-    }
-
-    RtlJumpIterator RtlJumpIterator::end() {
-      RtlJumpIterator r(m_block, m_block.m_jumps.end());;
-      return r;
-    }
-
-    bool RtlJumpIterator::operator==(const RtlJumpIterator &i) const {
-      return &m_block == &i.m_block && m_underlying == i.m_underlying &&
-        m_unconditional == i.m_unconditional;
-    }
-
-    RtlJumpIterator &RtlJumpIterator::operator++() {
-      if ( m_underlying != m_block.m_jumps.end() ) {
-        ++m_underlying;
-        if ( m_underlying != m_block.m_jumps.end() ) {
-          if ( ! m_underlying->first ) {
-            m_unconditional = m_underlying;
-            ++m_underlying;
-          }
-        }
-      } else if ( m_unconditional != m_block.m_jumps.end() ) {
-        m_unconditional = m_block.m_jumps.end();
-      }
-
-      return *this;
-    }
-
-    RtlJumpIterator::value_type &RtlJumpIterator::operator*() {
-      if ( m_underlying != m_block.m_jumps.end() ) { return *m_underlying; }
-      else return *m_unconditional;
-    }
-
-    RtlJumpIterator::value_type *RtlJumpIterator::operator->() {
-      return &operator*();
+    bool RtlBasicBlock::isEntryPoint() const {
+      return function().entry().name() == name();
     }
 
     RtlBlockName RtlBlockName::first() {
@@ -376,21 +336,41 @@ namespace nnc {
 
     RtlFunction::RtlFunction(const std::string &name)
       : m_functionName(name),
+        m_entry(m_blocks.end()),
         m_types(typesForCurrentArch()) {
     }
 
     RtlFunction::~RtlFunction() {
     }
 
-    std::shared_ptr<RtlBasicBlock> RtlFunction::block() {
+    RtlBasicBlock &RtlFunction::block(bool entry) {
       RtlBlockName nm(m_blocks.size());
-      auto blk(std::make_shared<RtlBasicBlock>(*this, nm));
-      m_blocks.push_back(blk);
+      auto &blk(m_blocks.emplace_back(*this, nm));
+
+      if ( m_entry == m_blocks.end() || entry ) {
+        m_entry = m_blocks.end();
+        -- m_entry;
+      }
+
       return blk;
     }
 
-    std::shared_ptr<RtlBasicBlock> RtlFunction::block(const RtlBlockName &blockName) const {
-      return m_blocks[blockName.index()];
+    const RtlBasicBlock &RtlFunction::block(const RtlBlockName &blockName) const {
+      auto it(m_blocks.begin());
+      std::advance(it, blockName.index());
+      return *it;
+    }
+
+    RtlBasicBlock &RtlFunction::block(const RtlBlockName &blockName) {
+      auto it(m_blocks.begin());
+      std::advance(it, blockName.index());
+      return *it;
+    }
+
+    decltype(RtlFunction::m_blocks)::iterator RtlFunction::findBlock(const RtlBlockName &nm) {
+      auto it(m_blocks.begin());
+      std::advance(it, nm.index());
+      return it;
     }
 
     std::shared_ptr<RtlVariable> RtlFunction::variable(const std::string &namePrefix,
@@ -415,133 +395,9 @@ namespace nnc {
     }
 
     void RtlFunction::dump(std::ostream &out) {
-      out << "Function " << m_functionName << std::endl;
-      out << "Basic block count: " << m_blocks.size() << std::endl;
-
-      for ( const auto &blockInfo : m_blocks ) {
-        out << "block" << blockInfo->name().index() << "(";
-        bool comma(false);
-        for ( const auto &i : blockInfo->m_inputs ) {
-          if ( comma ) out << ", ";
-          out << "(";
-          i->type()->output(out);
-          out << ") " << i->name();
-          comma = true;
-        }
-        out << "):" << std::endl;
-
-        for ( const auto &op : *blockInfo ) {
-          OperandPrinter p(*this, out);
-
-          out << "  " << op->mnemonic() << "(";
-          op->operands(p);
-          out << ")" << std::endl;
-        }
-
-        for ( const auto &jump : blockInfo->jumps() ) {
-          if ( jump.first ) {
-            out << "  call block" << jump.second.to().index() << "(";
-            std::transform(jump.second.arguments().begin(), jump.second.arguments().end(),
-                           std::ostream_iterator<std::string>(out, ", "),
-                           [] (const std::shared_ptr<RtlVariable> &var) {
-                             std::stringstream ss;
-                             ss << "(";
-                             var->type()->output(ss);
-                             ss << ") " << var->name();
-                             return ss.str();
-                           });
-            out << ") when " << jump.first->name() << std::endl;
-          }
-        }
-
-        if ( blockInfo->has_jump() ) {
-          const auto &jump(blockInfo->jump());
-          out << "  call block" << jump.to().index() << "(";
-          std::transform(jump.arguments().begin(), jump.arguments().end(),
-                           std::ostream_iterator<std::string>(out, ", "),
-                           [] (const std::shared_ptr<RtlVariable> &var) {
-                             std::stringstream ss;
-                             ss << "(";
-                             var->type()->output(ss);
-                             ss << ") " << var->name();
-                             return ss.str();
-                           });
-          out << ")" << std::endl;
-        } else
-          out << "  return" << std::endl;
-      }
-    }
-
-    RtlBlockIterator RtlFunction::blocks() {
-      return RtlBlockIterator(*this, 0);
-    }
-
-    RtlBlockIterator::RtlBlockIterator(RtlFunction &fn, int i)
-      : m_function(fn), m_index(i) {
-    }
-
-    RtlBlockIterator::RtlBlockIterator(const RtlBlockIterator &o)
-      : m_function(o.m_function), m_index(o.m_index) {
-    }
-
-    std::pair< RtlBlockName, std::shared_ptr<RtlBasicBlock> > RtlBlockIterator::operator*() const {
-        return std::make_pair(RtlBlockName(m_index), m_function.m_blocks[m_index]);
-    }
-
-    bool RtlBlockIterator::operator==(const RtlBlockIterator &i) const {
-      return (&m_function) == (&i.m_function) &&
-        m_index == i.m_index;
-    }
-
-    bool RtlBlockIterator::operator<(const RtlBlockIterator &i) const {
-      return (&m_function) == (&i.m_function) &&
-        m_index < i.m_index;
-    }
-
-    bool RtlBlockIterator::operator>(const RtlBlockIterator &i) const {
-      return (&m_function) == (&i.m_function) &&
-        m_index > i.m_index;
-    }
-
-    RtlBlockIterator RtlBlockIterator::operator+(int i) const {
-      auto nextIndex(m_index + i);
-      if ( nextIndex < 0 )
-        return begin();
-      else if ( nextIndex >= m_function.m_blocks.size() )
-        return end();
-      else
-        return RtlBlockIterator(m_function, nextIndex);
-    }
-
-    RtlBlockIterator &RtlBlockIterator::operator++() {
-      RtlBlockIterator next(*this + 1);
-      swap(next);
-      return *this;
-    }
-
-    RtlBlockIterator RtlBlockIterator::operator++(int i) {
-      RtlBlockIterator next(*this);
-      ++(*this);
-      return next;
-    }
-
-    void RtlBlockIterator::swap(RtlBlockIterator &i) {
-      std::swap(i.m_index, m_index);
-    }
-
-    RtlBlockIterator RtlBlockIterator::begin() const {
-      return RtlBlockIterator(m_function, 0);
-    }
-
-    RtlBlockIterator RtlBlockIterator::end() const {
-      return RtlBlockIterator(m_function, m_function.m_blocks.size());
-    }
-
-    void dumpOp(RtlOp &o, RtlFunction &f, std::ostream &out) {
-      OperandPrinter p(f, out);
-      out << o.mnemonic() << "(";
-      o.operands(p);
-      out << ")";
+      RtlBasicBlockDumper dump(out);
+      dump.dump(*this);
     }
   }
 }
+

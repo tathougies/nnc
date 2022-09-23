@@ -3,10 +3,24 @@
 
 #include <cassert>
 #include <iomanip>
+#include <limits>
 
 namespace nnc::arch::x86_64 {
   using namespace nnc::compile;
   using namespace nnc::exception;
+
+  class ArchTypeInfo : public RtlTypeInfo {
+  public:
+    ArchTypeInfo(const RtlType &t, bool unwrapPointer = true)
+      : RtlTypeInfo(t) {
+      if ( unwrapPointer && isPointerType() ) {
+        m_cls = IntClass;
+        m_width = 64;
+        m_underlying.reset();
+        m_signedness = RtlUnsigned;
+      }
+    }
+  };
 
   class opcode_overflow : public std::exception {
   public:
@@ -15,13 +29,32 @@ namespace nnc::arch::x86_64 {
     virtual const char *what() const noexcept { return "opcode overflow"; }
   };
 
-  opcode::opcode() {
-    clear();
-  }
+  class Constant32Fixup : public BytecodeFixup {
+  public:
+    Constant32Fixup(std::uintptr_t const_offset) : m_offset(const_offset) {}
+    virtual ~Constant32Fixup() {}
 
-  opcode::opcode(std::uint8_t u) {
-    clear();
-    code(u);
+    virtual std::size_t size() const override { return 4; }
+
+    virtual void fixup(BytecodeInfo &info, std::uint8_t *buf, std::size_t sz) override {
+      std::uintptr_t base(info.section_start(BytecodeInfo::DataSection));
+      union {
+        std::uint32_t imm;
+        std::uint8_t d[4];
+      };
+      imm = base + m_offset;
+      std::copy(std::begin(d), std::end(d), buf);
+    }
+
+  private:
+    std::uintptr_t m_offset;
+  };
+
+    opcode::opcode() { clear(); }
+
+    opcode::opcode(std::uint8_t u) {
+      clear();
+      code(u);
   }
 
   opcode::opcode(std::uint8_t u, std::uint8_t v) {
@@ -199,11 +232,17 @@ namespace nnc::arch::x86_64 {
         m_disp = a.displacement();
 
       bool bbit(false), xbit(false);
-      compile::Register baseReg(chooseRegister(regs, regclass::gp, a.base()));
+      compile::Register baseReg(chooseRegister(regs, regclass::baseregs, a.base()));
       Reg g(translate_reg(baseReg, bbit));
 
+      if (g == Reg101 && m == Mod00) {
+        // This is x86-64 RIP-relative addressing. We must force a displacement
+        m = Mod01; // Adds an 8-bit displacement
+        m_disp = 0;
+      }
+
       if ( a.indexReg() ) {
-        compile::Register indexReg(chooseRegister(regs, regclass::gp, a.indexReg()));
+        compile::Register indexReg(chooseRegister(regs, regclass::indexregs, a.indexReg()));
 
         std::uint8_t sib_ss(a.scalePow2() & 0x3);
         Reg sib_index(translate_reg(indexReg, xbit));
@@ -236,6 +275,8 @@ namespace nnc::arch::x86_64 {
     bool bbit(false);
     compile::Register r(chooseRegister(regs, cls, a));
     Reg g(translate_reg(r, bbit));
+
+    std::cerr << "MODRM SAYS BBIT " << bbit << std::endl;
     if ( bbit ) rexvexb();
 
     return modrm(Mod11, (Rm) g);
@@ -246,6 +287,14 @@ namespace nnc::arch::x86_64 {
     m_modrm &= 0x38;
     m_modrm |= (mod & 0x3) << 6;
     m_modrm |= rm & 0x7;
+    return *this;
+  }
+
+  opcode &opcode::sib(std::uint8_t scale, std::uint8_t index,
+                      std::uint8_t base) {
+    m_sib = ((scale & 0x3) << 6) |
+      (index & 0x7) << 3 |
+      (base & 0x7);
     return *this;
   }
 
@@ -473,7 +522,7 @@ namespace nnc::arch::x86_64 {
   }
 
   opcode &opcode::vexr(bool v) {
-    if ( m_flags & k_has_vex2 == 0 ) {
+    if ( !has_vex2() ) {
       if ( !v ) return *this;
       vex2();
     }
@@ -488,7 +537,7 @@ namespace nnc::arch::x86_64 {
   }
 
   opcode &opcode::vexx(bool v) {
-    if ( m_flags & k_has_vex2 == 0 ) {
+    if ( (m_flags & k_has_vex2) == 0 ) {
       if ( !v ) return *this;
       vex2();
     }
@@ -503,7 +552,7 @@ namespace nnc::arch::x86_64 {
   }
 
   opcode &opcode::vexb(bool v) {
-    if ( m_flags & k_has_vex2 == 0 ) {
+    if ( (m_flags & k_has_vex2) == 0 ) {
       if ( !v ) return *this;
       vex2();
     }
@@ -685,19 +734,18 @@ namespace nnc::arch::x86_64 {
 
   opcode_builder::opcode_builder(const compile::RtlRegisterMapper &inputs,
                                  const compile::RtlRegisterMapper &outputs,
-                                 std::ostream &out)
+                                 compile::BytecodeEmitter &out)
     : m_inputs(inputs), m_outputs(outputs), m_out(out) {
   }
 
   void opcode_builder::c_xor(const types::modrm &dest, const types::modrm &a, const types::modrmimm &b) {
     RtlType &ty(*a.type());
-    RtlTypeInfo size(ty);
-    assert(size.isIntType() && size.width() <= 64);
+    ArchTypeInfo size(ty);
 
     if ( dest.isAReg(m_outputs) && b.isImmediate() && size.width() <= 32 ) {
       // Check if the dest (or A arg) is 64-bits
       if ( dest.isRegister() ) {
-        RtlTypeInfo dstSize(*dest.base()->type());
+        ArchTypeInfo dstSize(*dest.base()->type());
         if ( dstSize.width() == 64 &&
              size.width() == 32 ) {
           // Sign extend
@@ -746,7 +794,7 @@ namespace nnc::arch::x86_64 {
   void opcode_builder:: cmp(const types::modrm &a, const types::modrmimm &b,
                             const compile::RtlVariablePtr &sign, const compile::RtlVariablePtr &carry) {
     RtlType &ty(*a.type());
-    RtlTypeInfo size(ty);
+    ArchTypeInfo size(ty);
     assert(size.isIntType() && size.width() <= 64);
 
     if ( a.isAReg(m_inputs) && b.isImmediate() && size.width() <= 32 ) {
@@ -777,7 +825,7 @@ namespace nnc::arch::x86_64 {
   }
 
   void opcode_builder::dec(const types::modrm &dst, const types::modrm &src) {
-    RtlTypeInfo size(*dst.type());
+    ArchTypeInfo size(*dst.type());
     assert(size.isIntType() && size.width() <= 64);
 
     if ( size.width() <= 32 && dst.isRegister() ) {
@@ -799,7 +847,7 @@ namespace nnc::arch::x86_64 {
   }
 
   void opcode_builder::inc(const types::modrm &dst, const types::modrm &src) {
-    RtlTypeInfo size(*dst.type());
+    ArchTypeInfo size(*dst.type());
     assert(size.isIntType() && size.width() <= 64);
 
     std::uint8_t opc(0xFF);
@@ -815,7 +863,7 @@ namespace nnc::arch::x86_64 {
   }
 
   void opcode_builder::sub(const types::modrm &dst, const types::modrm &a, const types::modrmimm &b) {
-    RtlTypeInfo bty(*b.type()), aty(*a.type());;
+    ArchTypeInfo bty(*b.type()), aty(*a.type());;
     assert(bty.isIntType() && bty.width() <= 64);
 
     if ( aty.width() != bty.width() ) throw std::runtime_error("signe extended sub not supported");
@@ -856,7 +904,7 @@ namespace nnc::arch::x86_64 {
   }
 
   void opcode_builder::imul(const types::modrm &dst, const types::modrm &a, const types::modrmimm &b) {
-    RtlTypeInfo bty(*b.type()), aty(*a.type());
+    ArchTypeInfo bty(*b.type()), aty(*a.type());
     assert(bty.isIntType() && bty.width() <= 64 && bty.intFormat() == RtlTwosComplement);
 
 //    if ( dst.isAReg(m_outputs) && !b.isImmediate() ) {
@@ -878,7 +926,7 @@ namespace nnc::arch::x86_64 {
   }
 
   void opcode_builder::add(const types::modrm &dst, const types::modrm &a, const types::modrmimm &b) {
-    RtlTypeInfo bty(*b.type()), aty(*a.type());
+    ArchTypeInfo bty(*b.type()), aty(*a.type());
     assert(bty.isIntType() && bty.width() <= 64);
 
     if ( aty.width() != bty.width() ) throw std::runtime_error("signe extended sub not supported");
@@ -920,7 +968,7 @@ namespace nnc::arch::x86_64 {
 
   void opcode_builder::lea(const compile::RtlVariablePtr &dst, const types::modrm &src) {
     RtlType &ty(*dst->type());
-    RtlTypeInfo size(ty);
+    ArchTypeInfo size(ty);
     assert(size.isIntType() && size.width() <= 64);
 
     opcode o(0x8D);
@@ -932,7 +980,7 @@ namespace nnc::arch::x86_64 {
 
   void opcode_builder::mov(const types::modrm &dst, const types::modrmimm &src) {
     RtlType &ty(*dst.type());
-    RtlTypeInfo size(ty);
+    ArchTypeInfo size(ty);
     assert(size.isIntType() && size.width() <= 64);
 
     std::uint8_t opc;
@@ -985,7 +1033,7 @@ namespace nnc::arch::x86_64 {
       if ( size.width() > 32 )
         o.rexw();
 
-      o.modrm(m_outputs, regclass::gp, dst).modrm_reg(m_inputs, regclass::gp, src.reg().base());
+      o.modrm(m_outputs, regclass::gp, dst).modrm_reg(m_inputs, regclass::baseregs, src.reg().base());
       emit(o);
     } else {
       if ( size.width() <= 8 )
@@ -996,16 +1044,53 @@ namespace nnc::arch::x86_64 {
       opcode o(opc);
       if ( size.width() > 32 )
         o.rexw();
-      o.modrm(m_inputs, regclass::gp, src.reg()).modrm_reg(m_outputs, regclass::gp, dst.base());
+      o.modrm(m_inputs, regclass::gp, src.reg()).modrm_reg(m_outputs, regclass::baseregs, dst.base());
 
       emit(o);
     }
   }
 
-  void opcode_builder:: addss(const compile::RtlVariablePtr &dst, const compile::RtlVariablePtr &a,
+  void opcode_builder::movzx(const compile::RtlVariablePtr &dst,
+                             const types::modrm &src) {
+    std::uint8_t szcode(0xB6);
+    RtlTypeInfo srcinfo(*src.type()), dstinfo(*dst->type());
+    assert(srcinfo.width() <= 16);
+    assert(dstinfo.width() <= 64);
+
+    if (srcinfo.width() > 8)
+      szcode = 0xB7;
+
+    opcode o(0x0F, szcode);
+
+    if (dstinfo.width() > 32)
+      o.rexw();
+
+    o.modrm_reg(m_outputs, regclass::gp, dst).modrm(m_inputs, regclass::gp, src);
+
+    emit(o);
+  }
+
+  void opcode_builder::mulss(const compile::RtlVariablePtr &dst,
+                             const compile::RtlVariablePtr &a,
+                             const types::modrm &b) {
+    opcode o(0x0f, 0x59);
+
+    o.simd_prefix(opcode::simd_scalar_single);
+    o.modrm_reg(m_outputs, regclass::avx, dst).modrm(m_inputs, regclass::avx, b);
+    o.avx_reg(m_inputs, regclass::avx, a);
+
+    emit(o);
+  }
+
+  void opcode_builder::addss(const compile::RtlVariablePtr &dst, const compile::RtlVariablePtr &a,
                               const types::modrm &b) {
     opcode o(0x0F, 0x58);
 
+    compile::Register areg(chooseRegister(m_inputs, regclass::avx, a));
+    compile::Register breg(chooseRegister(m_inputs, regclass::avx, b.base()));
+    compile::Register dstreg(chooseRegister(m_outputs, regclass::avx, dst));
+
+    std::cerr << "ADDSS REGISTERS ARE " << dstreg << " = " << areg << " + " << breg << std::endl;
     o.simd_prefix(opcode::simd_scalar_single);
     o.modrm_reg(m_outputs, regclass::avx, dst).modrm(m_inputs, regclass::avx, b);
 
@@ -1014,21 +1099,58 @@ namespace nnc::arch::x86_64 {
     emit(o);
   }
 
-  void opcode_builder:: movss(const types::modrm &dst, const types::modrm &src) {
+  void opcode_builder::movss(const types::modrm &dst, const types::modrmimm &src) {
     if ( src.isMemoryRef() ) {
-      emit(opcode(0x0F, 0x10).simd_prefix(opcode::simd_scalar_single).modrm_reg(m_outputs, regclass::avx, dst.base()).modrm(m_inputs, regclass::avx, src));
+      emit(opcode(0x0F, 0x10).simd_prefix(opcode::simd_scalar_single).modrm_reg(m_outputs, regclass::avx, dst.base()).modrm(m_inputs, regclass::avx, src.reg()));
     } else if ( dst.isMemoryRef() ) {
-      emit(opcode(0x0F, 0x11).simd_prefix(opcode::simd_scalar_single).modrm_reg(m_outputs, regclass::avx, src.base()).modrm(m_inputs, regclass::avx, dst));
+      emit(opcode(0x0F, 0x11).simd_prefix(opcode::simd_scalar_single).modrm_reg(m_outputs, regclass::avx, src.reg().base()).modrm(m_inputs, regclass::avx, dst));
+    } else if (src.isImmediate()) {
+      auto offset(allocate_constant(src.immediate()));
+      emit(opcode(0x0F, 0x10).simd_prefix(opcode::simd_scalar_single)
+           .modrm(opcode::Mod00, opcode::Reg100)
+           .sib(0, opcode::IndexNone, opcode::BaseNone)
+           .modrm_reg(m_outputs, regclass::avx, dst.base()));
+
+      auto disp(std::make_unique<Constant32Fixup>(offset));
+      fixup(std::move(disp));
     } else {
-      // Register to register move
-      throw InvalidOpcode("Register to register movss");
+      emit(opcode(0x0F, 0x10).simd_prefix(opcode::simd_scalar_single).modrm_reg(m_outputs, regclass::avx, dst.base()).modrm(m_inputs, regclass::avx, src.reg().base()));
     }
+  }
+
+  void opcode_builder::cvtsi2ss(const compile::RtlVariablePtr &dst,
+                                const types::modrm &src) {
+    opcode o(0x0F, 0x2A);
+    RtlTypeInfo srctype(*src.type());
+
+    o.simd_prefix(opcode::simd_scalar_single);
+
+    if ( srctype.width() >= 32 )
+      o.rexw(); // Enable 64-bit version
+
+    o.modrm_reg(m_outputs, regclass::avx, dst).modrm(m_inputs, regclass::gp, src);
+
+    emit(o);
+  }
+
+  void opcode_builder::fixup(std::unique_ptr<compile::BytecodeFixup> &&f) {
+    m_out.write_fixup(compile::BytecodeInfo::CodeSection, std::move(f));
+  }
+
+  std::uintptr_t opcode_builder::allocate_constant(const types::imm &i) const {
+    union {
+      uint64_t v;
+      std::uint8_t d[8];
+    };
+    v = i.value();
+
+    std::span<std::uint8_t> span(d, i.type()->size());
+    return m_out.allocate_constant(span);
   }
 
   void opcode_builder::emit(const opcode &e) {
     std::stringstream s;
     e.dump(s);
-    std::cerr << "Emit " << std::hex << std::setw(2) << std::setfill('0');
     std::string ss(s.str());
     std::transform(ss.begin(), ss.end(), std::ostream_iterator<unsigned int>(std::cerr, " "),
                    [](char c) {
@@ -1036,7 +1158,8 @@ namespace nnc::arch::x86_64 {
                      return u;
                    });
     std::cerr << std::dec << std::endl;
-    e.dump(m_out);
+
+    m_out.write_bytes(compile::BytecodeInfo::CodeSection, (const std::uint8_t *)ss.data(), ss.size());
   }
 
   class RelJump32 : public JumpInsn {
@@ -1182,8 +1305,11 @@ namespace nnc::arch::x86_64 {
     return std::make_unique<RelJump32>(0, v);
   }
 
-  void jumps::preamble(std::ostream &out) const {
+  void jumps::preamble(BytecodeEmitter &out) const {
     std::uint8_t i[] {
+      // Int3
+      //      0xCC,
+
       0x55,                  // Push RBP
       0x48, 0x8B, 0b11101101, // Move RBP, RSP
         // push rbx, r12 - r15
@@ -1191,12 +1317,12 @@ namespace nnc::arch::x86_64 {
       0x41, 0x54, // Push R12
       0x41, 0x55, // Push R13
       0x41, 0x56, // Push R14
-      0x41, 0x57 // Push R15
+      0x41, 0x57, // Push R15
     };
-    out.write((const char *) i, sizeof i);
+    out.write_bytes(compile::BytecodeInfo::CodeSection, i, sizeof i);
   }
 
-  void jumps::postamble(std::ostream &out) const {
+  void jumps::postamble(BytecodeEmitter &out) const {
     std::uint8_t i[] {
       0x41, 0x5F, // Pop R15
       0x41, 0x5E, // Pop R14
@@ -1205,12 +1331,12 @@ namespace nnc::arch::x86_64 {
       0x5B, // Pop RBX
       0x5D, // Pop RBP
     };
-    out.write((const char *) i, sizeof i);
+    out.write_bytes(compile::BytecodeInfo::CodeSection, i, sizeof i);
   }
 
-  void jumps::funret(std::ostream &out) const {
-    std::uint8_t i(0xC3);
-    out.write((const char *) &i, 1);
+  void jumps::funret(BytecodeEmitter &out) const {
+    std::uint8_t i[]{0xC3};
+    out.write_bytes(compile::BytecodeInfo::CodeSection, i, sizeof i);
   }
 
   class OutputMapper : public RtlRegisterMapper {
@@ -1222,7 +1348,7 @@ namespace nnc::arch::x86_64 {
     }
 
     virtual std::vector<VirtualRegister> lookupVar(const RtlVariablePtr &v) const override {
-      if ( v == m_var ) {
+      if ( v->isSame(m_var) ) {
         std::vector<VirtualRegister> r {m_dest};
         return r;
       } else
@@ -1234,18 +1360,49 @@ namespace nnc::arch::x86_64 {
     VirtualRegister m_dest;
   };
 
-  void jumps::copy(std::ostream &out, const RtlRegisterMapper &inputs, const RtlVariablePtr &var, const VirtualRegister &dest) const {
+  void jumps::copy(BytecodeEmitter &out, const RtlRegisterMapper &inputs, const RtlVariablePtr &var, const VirtualRegister &dest) const {
     // Get primary register class for dest
     if ( dest.isRegister() ) {
       auto &reg(dest.reg());
       if ( reg.belongsToClass(regclass::gp) ) {
         OutputMapper outputs(var, dest);
         std::cerr << "Copy " << var->name() << " to " << dest << std::endl;
-        opcode_builder(inputs, outputs, out).mov(var, var);
-      } else
+        if (inputs.spilled(var)) {
+          std::cerr << "Input is spilled only " << std::endl;
+          auto locs(inputs.lookupVar(var));
+          OutputMapper inputBase(var, registers.rbp());
+          opcode_builder(inputBase, outputs, out).mov(types::modrm::memref(var, var->type(), locs.front().spillSlot()), var);
+        } else
+          opcode_builder(inputs, outputs, out).mov(var, var);
+      } else if (reg.belongsToClass(regclass::avx)) {
+        RtlTypeInfo info(*var->type());
+        if ( !info.isFloatType() )
+          throw std::runtime_error("Can't copy non-float to avx register");
+
+        OutputMapper outputs(var, dest);
+        if (info.width() <= 32) {
+          opcode_builder(inputs, outputs, out).movss(var, var);
+        } else
+          throw std::runtime_error("Unsuported width");
+      } else {
+        std::cerr << "Copy register " << dest << " from " << var->name() << std::endl;
         throw std::runtime_error("Can't copy register");
+      }
     } else if ( dest.isSpill() ) {
-      throw std::runtime_error("Copying to spill not implemented");
+      auto rbp(std::make_shared<RtlVariable>("rbp", var->type()));
+      OutputMapper outputs(rbp, registers.rbp());
+      auto locs(inputs.lookupVar(var));
+
+      auto gp(std::find_if(locs.begin(), locs.end(), [](const VirtualRegister &r) {
+        return r.isRegister() && r.reg().belongsToClass(regclass::gp);
+      }));
+
+      if (gp != locs.end()) {
+        opcode_builder(inputs, outputs, out)
+          .mov(types::modrm::memref(rbp, var->type(), dest.spillSlot()), var);
+      } else {
+        throw std::runtime_error("Copying to spill not implemented");
+      }
     }
   }
 }

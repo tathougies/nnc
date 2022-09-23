@@ -81,7 +81,7 @@ namespace nnc::compile {
     }
 
     virtual void setConstant(const std::shared_ptr<RtlVariable> &var, const std::shared_ptr<RtlType> &ty,
-                             const std::span<std::uint8_t> &value) {
+                             const std::span<const std::uint8_t> &value) {
       m_added = true;
       m_constants.setConstant(var, ty, value);
     }
@@ -101,7 +101,7 @@ namespace nnc::compile {
   PropagatedConstant::PropagatedConstant(RtlFunction &fn,
                                          const std::shared_ptr<RtlVariable> &var,
                                          const std::shared_ptr<RtlType> &ty,
-                                         const std::span<std::uint8_t> &value)
+                                         const std::span<const std::uint8_t> &value)
     : RtlOperandVisitor(fn), m_var(var), m_type(ty), m_const(value.size()) {
     m_const.resize(value.size());
     std::copy(value.begin(), value.end(), m_const.begin());
@@ -156,7 +156,7 @@ namespace nnc::compile {
 
   void ConstantPropagation::setConstant(const std::shared_ptr<RtlVariable> &var,
                                         const std::shared_ptr<RtlType> &ty,
-                                        const std::span<std::uint8_t> &value) {
+                                        const std::span<const std::uint8_t> &value) {
     auto it(m_constants.find(var));
     if ( it == m_constants.end() ) {
       m_constants.emplace(std::piecewise_construct,
@@ -165,12 +165,12 @@ namespace nnc::compile {
     }
   }
 
-  void ConstantPropagation::propagateBlock(std::shared_ptr<RtlBasicBlock> block) {
+  void ConstantPropagation::propagateBlock(RtlBasicBlock &block) {
     bool newOps;
 
     do {
       newOps = false;
-      for ( const auto &opPtr : *block ) {
+      for ( const auto &opPtr : block ) {
         RtlOp &op(*opPtr);
         try {
           RtlConstantOp &constOp(dynamic_cast<RtlConstantOp &>(op));
@@ -203,7 +203,7 @@ namespace nnc::compile {
 
       // All variables for which we've added an RtlConstantOp
       std::set<std::shared_ptr<RtlVariable>> m_constsAdded;
-      for ( auto &opPtr : *block ) {
+      for ( auto &opPtr : block ) {
         RtlConstantOp *constOp(dynamic_cast<RtlConstantOp *>(opPtr.get()));
         if ( constOp ) {
           m_constsAdded.insert(constOp->dest());
@@ -239,13 +239,13 @@ namespace nnc::compile {
       }
 
       // Delete ops
-      block->replaceOps(remainingOps.begin(), remainingOps.end());
+      block.replaceOps(remainingOps.begin(), remainingOps.end());
     } while (newOps);
   }
 
   void ConstantPropagation::operator() () {
-    for ( const auto &block: function().blocks() ) {
-      propagateBlock(block.second);
+    for ( auto &block: function().blocks() ) {
+      propagateBlock(block);
     }
 
     std::cerr << "Before cull" << std::endl;

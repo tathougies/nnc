@@ -3,8 +3,11 @@
 
 #include <string>
 #include <vector>
+#include <optional>
 
-#include "compile/genericschedule.hpp"
+#include "compile/rtl.hpp"
+#include "compile/rtl_types.hpp"
+#include "compile/link.hpp"
 
 namespace nnc::exception {
   class RuntimeArityMismatch : public std::exception {
@@ -13,6 +16,9 @@ namespace nnc::exception {
     virtual ~RuntimeArityMismatch();
 
     virtual const char *what() const noexcept;
+
+    inline int given() const { return m_given; }
+    inline int expected() const { return m_expected; }
 
   private:
     int m_given, m_expected;
@@ -60,7 +66,10 @@ namespace nnc::invoke {
     FunctionLibrary();
     ~FunctionLibrary();
 
-    void link(nnc::compile::GenericFunctionScheduler &fn, const std::string &namePrefix = "");
+    //    void link(nnc::compile::GenericFunctionScheduler &fn, const std::string &namePrefix = "");
+    void link(const nnc::compile::Linker &linker,
+              const nnc::compile::RtlBasicBlock &entry,
+              const std::string &namePrefix = "");
 
     inline bool hasFunction(const std::string &name) const {
       return m_fns.find(name) != m_fns.end();

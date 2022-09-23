@@ -73,24 +73,22 @@ namespace nnc::compile {
     return begin() == end();
   }
 
+  void regset::clear() {
+    m_regs.clear();
+  }
+
   std::size_t regset::size() const {
     return std::count(m_regs.begin(), m_regs.end(), true);
   }
 
   regset regset::operator~() const {
     regset r(*m_file);
-    r.m_regs.resize(m_regs.size());
 
+    r.m_regs.resize(m_regs.size());
     std::transform(m_regs.begin(), m_regs.end(), r.m_regs.begin(),
                    [](bool b) { return !b; });
 
-    auto lastTrue(std::find(r.m_regs.rbegin(), r.m_regs.rend(), true));
-    if ( lastTrue != r.m_regs.rend() )
-      r.m_regs.erase(lastTrue.base() + 1, r.m_regs.end());
-
-    if ( r.m_regs.size() < m_file->registerCount() ) {
-      r.m_regs.resize(m_file->registerCount(), true);
-    }
+    r.m_regs.resize(m_file->registerCount(), true);
 
     return r;
   }

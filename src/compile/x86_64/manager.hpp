@@ -13,7 +13,6 @@ namespace nnc::arch::x86_64::compile {
 
   private:
     virtual void schedule(::nnc::compile::RtlFunction &fn,
-                          const ::nnc::compile::RtlBlockName &entry,
                           ::nnc::invoke::FunctionLibrary &lib);
   };
 }

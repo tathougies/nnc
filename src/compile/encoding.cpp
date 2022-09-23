@@ -26,7 +26,6 @@ namespace nnc::compile {
   public:
     NeedsMovesVisitor(RtlFunction &fn, const std::multimap<RtlVariablePtr, VirtualRegister> &assignments)
       : RtlOperandVisitor(fn) {
-      std::cerr << "Needs moves " << assignments.size() << std::endl;
       for ( const auto &a: assignments ) {
         std::cerr << "Add " << a.first << std::endl;
         m_needsMoves.insert(a.first);
@@ -54,7 +53,7 @@ namespace nnc::compile {
     std::set<RtlVariablePtr> m_needsMoves;
   };
 
-  void encodeBasicBlock(std::ostream &out, const RtlBasicBlock &block, const RegisterTracker &t, const InsnEncoder &e) {
+  void encodeBasicBlock(BytecodeEmitter &out, const RtlBasicBlock &block, const RegisterTracker &t, const InsnEncoder &e) {
     int time(0);
     for ( const auto &op: block ) {
       auto inputs(t.mapper(time - 1));
@@ -89,9 +88,12 @@ namespace nnc::compile {
     }
   }
 
-  void InsnEncoder::preamble(std::ostream &out) const {
+  void InsnEncoder::preamble(BytecodeEmitter &out) const {
   }
 
-  void InsnEncoder::postamble(std::ostream &out) const {
+  void InsnEncoder::postamble(BytecodeEmitter &out) const {
   }
+
+  /* Byte code */
+  BytecodeFixup::~BytecodeFixup() {}
 }

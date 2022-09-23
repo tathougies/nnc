@@ -136,6 +136,7 @@ namespace nnc {
     DECL_CASTLIKE_OP(RtlSiToFpOp);
     DECL_CASTLIKE_OP(RtlPtrToIntOp);
     DECL_CASTLIKE_OP(RtlIntToPtrOp);
+    DECL_CASTLIKE_OP(RtlMovOp);
 
     class RtlCmpOp : public RtlOp {
     public:
